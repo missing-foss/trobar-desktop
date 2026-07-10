@@ -1,0 +1,24 @@
+# Desktop CI (gitea#92) — paths assume this directory is the repo root,
+# which it becomes after the #38 split (desktop/ -> its own repository).
+# analyze + test only: engine tests run against temp dirs and a mocked
+# API, no GTK build deps needed. Read-only token, pinned majors.
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test

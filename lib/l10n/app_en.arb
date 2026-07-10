@@ -1,0 +1,104 @@
+{
+  "@@locale": "en",
+  "noCardDetected": "No paired card detected.",
+  "rescan": "Rescan",
+  "openFolder": "Open folder…",
+  "pairTitle": "Pair this folder",
+  "pairInstructions": "In the web app, create a device (type: SD card) and download its config file — then paste its contents here. The pairing is stored on the card itself, so any computer running Trobar can sync it.",
+  "pairInvalidConfig": "Not a valid device config (expected server_url + token).",
+  "pairWriteFailed": "Could not write to {path}: {reason}",
+  "@pairWriteFailed": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "loadConfigFile": "Load trobar-device.json…",
+  "pairButton": "Pair",
+  "transcodeActive": "Lossless tracks are transcoded to {format} kbit/s on this machine.",
+  "transcodeNoFfmpeg": "ffmpeg not found — transcoded tracks will be skipped. Install ffmpeg and reopen this card.",
+  "freeOfTotal": "{free} GB free of {total} GB",
+  "@freeOfTotal": {
+    "placeholders": {
+      "free": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "syncSummary": "Synced: {downloaded} downloaded, {transcoded} transcoded, {removed} removed",
+  "@syncSummary": {
+    "placeholders": {
+      "downloaded": {
+        "type": "int"
+      },
+      "transcoded": {
+        "type": "int"
+      },
+      "removed": {
+        "type": "int"
+      }
+    }
+  },
+  "syncSummarySkipped": ", {skipped} skipped (no ffmpeg)",
+  "@syncSummarySkipped": {
+    "placeholders": {
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "missingTitle": "{count} track(s) missing on this card",
+  "@missingTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "missingBody": "The server expected these files to be here. Re-download them, or leave them deleted (they will not be re-queued)?",
+  "cancel": "Cancel",
+  "leaveDeleted": "Leave deleted",
+  "redownload": "Re-download",
+  "orphansTitle": "{count} file(s) on this card are not managed by Trobar",
+  "@orphansTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "orphansBody": "Usually leftovers from a format change — but files you copied here yourself also show up. Delete them?\n\n{preview}",
+  "@orphansBody": {
+    "placeholders": {
+      "preview": {
+        "type": "String"
+      }
+    }
+  },
+  "orphansMore": "… and {count} more",
+  "@orphansMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "keep": "Keep",
+  "deleteThem": "Delete them",
+  "syncNow": "Sync now",
+  "syncing": "Syncing…",
+  "@transcodeActive": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      }
+    }
+  }
+}

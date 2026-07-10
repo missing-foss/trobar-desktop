@@ -1,0 +1,29 @@
+name: trobar_desktop
+description: "Trobar desktop sync client — syncs library selections onto SD cards and local folders for network-less DAPs."
+publish_to: 'none'
+
+version: 0.6.1+7
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+  http: ^1.2.0
+  file_selector: ^1.0.3
+  path: ^1.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/logo_bard.png
