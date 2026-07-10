@@ -107,4 +107,70 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncing => 'Syncing…';
+
+  @override
+  String get aboutTooltip => 'About Trobar';
+
+  @override
+  String get aboutTitle => 'About';
+
+  @override
+  String aboutVersion(String version) {
+    return 'Version $version';
+  }
+
+  @override
+  String get checkUpdates => 'Check for updates';
+
+  @override
+  String get updateChecking => 'Checking…';
+
+  @override
+  String updateAvailable(String tag) {
+    return 'Update available: $tag — see Releases.';
+  }
+
+  @override
+  String updateUpToDate(String version) {
+    return 'You are running the latest release ($version).';
+  }
+
+  @override
+  String updateCheckFailed(String error) {
+    return 'Could not reach GitHub ($error) — try again later.';
+  }
+
+  @override
+  String get donate => 'Donate';
+
+  @override
+  String get aboutLinks => 'Links';
+
+  @override
+  String get aboutDocumentation => 'Documentation';
+
+  @override
+  String get aboutSourceCode => 'Source code';
+
+  @override
+  String get aboutReportIssue => 'Report an issue or request a feature';
+
+  @override
+  String get aboutReleases => 'Releases';
+
+  @override
+  String get aboutLicenses => 'Licenses';
+
+  @override
+  String get aboutLicenseSummary =>
+      'Trobar desktop is free software under the GNU GPL, version 3 or later. The bundled ffmpeg and every library keep their own licenses.';
+
+  @override
+  String get showLicense => 'License';
+
+  @override
+  String get showThirdParty => 'Third-party';
+
+  @override
+  String get close => 'Close';
 }

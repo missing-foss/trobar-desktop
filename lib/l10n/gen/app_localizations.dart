@@ -253,6 +253,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Syncing…'**
   String get syncing;
+
+  /// No description provided for @aboutTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'About Trobar'**
+  String get aboutTooltip;
+
+  /// No description provided for @aboutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get aboutTitle;
+
+  /// No description provided for @aboutVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String aboutVersion(String version);
+
+  /// No description provided for @checkUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get checkUpdates;
+
+  /// No description provided for @updateChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking…'**
+  String get updateChecking;
+
+  /// No description provided for @updateAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Update available: {tag} — see Releases.'**
+  String updateAvailable(String tag);
+
+  /// No description provided for @updateUpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'You are running the latest release ({version}).'**
+  String updateUpToDate(String version);
+
+  /// No description provided for @updateCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reach GitHub ({error}) — try again later.'**
+  String updateCheckFailed(String error);
+
+  /// No description provided for @donate.
+  ///
+  /// In en, this message translates to:
+  /// **'Donate'**
+  String get donate;
+
+  /// No description provided for @aboutLinks.
+  ///
+  /// In en, this message translates to:
+  /// **'Links'**
+  String get aboutLinks;
+
+  /// No description provided for @aboutDocumentation.
+  ///
+  /// In en, this message translates to:
+  /// **'Documentation'**
+  String get aboutDocumentation;
+
+  /// No description provided for @aboutSourceCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Source code'**
+  String get aboutSourceCode;
+
+  /// No description provided for @aboutReportIssue.
+  ///
+  /// In en, this message translates to:
+  /// **'Report an issue or request a feature'**
+  String get aboutReportIssue;
+
+  /// No description provided for @aboutReleases.
+  ///
+  /// In en, this message translates to:
+  /// **'Releases'**
+  String get aboutReleases;
+
+  /// No description provided for @aboutLicenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Licenses'**
+  String get aboutLicenses;
+
+  /// No description provided for @aboutLicenseSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Trobar desktop is free software under the GNU GPL, version 3 or later. The bundled ffmpeg and every library keep their own licenses.'**
+  String get aboutLicenseSummary;
+
+  /// No description provided for @showLicense.
+  ///
+  /// In en, this message translates to:
+  /// **'License'**
+  String get showLicense;
+
+  /// No description provided for @showThirdParty.
+  ///
+  /// In en, this message translates to:
+  /// **'Third-party'**
+  String get showThirdParty;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
 }
 
 class _AppLocalizationsDelegate

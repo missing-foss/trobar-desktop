@@ -1,17 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Trobar desktop — syncs library selections onto SD cards / local folders
-// for network-less DAPs. gitea#2 M2 skeleton: pairing + plain-copy sync;
-// transcoding lands in M3.
+// for network-less DAPs (gitea#2): pairing, server-driven diff sync,
+// client-side MP3 transcoding, playlists, artist images.
 
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart' show LicenseEntryWithLineBreaks, LicenseRegistry;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'l10n/gen/app_localizations.dart';
 
+import 'about_screen.dart';
 import 'api_client.dart';
 import 'card_store.dart';
 import 'models.dart';
@@ -24,7 +27,16 @@ const brandRose = Color(0xFFD76A83);
 const brandCream = Color(0xFFF9EFDF);
 const brandCanvas = Color(0xFF100E08);
 
-void main() => runApp(const TrobarApp());
+void main() {
+  // The Linux release tarball bundles a static ffmpeg (GPL-3.0) — surface
+  // its license in Flutter's own third-party page (gitea#71/#137).
+  LicenseRegistry.addLicense(() async* {
+    final text =
+        await rootBundle.loadString('packaging/licenses/ffmpeg-GPL-3.0.txt');
+    yield LicenseEntryWithLineBreaks(const ['ffmpeg (bundled static build)'], text);
+  });
+  runApp(const TrobarApp());
+}
 
 class TrobarApp extends StatelessWidget {
   const TrobarApp({super.key});
@@ -104,7 +116,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: Center(
+        body: Stack(children: [
+          Positioned(
+            top: 8,
+            right: 8,
+            child: IconButton(
+              tooltip: AppLocalizations.of(context).aboutTooltip,
+              icon: Icon(Icons.info_outline,
+                  color: brandCream.withValues(alpha: .6)),
+              onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AboutScreen())),
+            ),
+          ),
+          Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
             child: Column(
@@ -156,7 +180,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-        ),
+          ),
+        ]),
       );
 }
 

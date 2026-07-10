@@ -107,4 +107,71 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get syncing => 'Synchronisation…';
+
+  @override
+  String get aboutTooltip => 'À propos de Trobar';
+
+  @override
+  String get aboutTitle => 'À propos';
+
+  @override
+  String aboutVersion(String version) {
+    return 'Version $version';
+  }
+
+  @override
+  String get checkUpdates => 'Vérifier les mises à jour';
+
+  @override
+  String get updateChecking => 'Vérification…';
+
+  @override
+  String updateAvailable(String tag) {
+    return 'Mise à jour disponible : $tag — voir les versions publiées.';
+  }
+
+  @override
+  String updateUpToDate(String version) {
+    return 'Vous utilisez la dernière version ($version).';
+  }
+
+  @override
+  String updateCheckFailed(String error) {
+    return 'Impossible de joindre GitHub ($error) — réessayez plus tard.';
+  }
+
+  @override
+  String get donate => 'Faire un don';
+
+  @override
+  String get aboutLinks => 'Liens';
+
+  @override
+  String get aboutDocumentation => 'Documentation';
+
+  @override
+  String get aboutSourceCode => 'Code source';
+
+  @override
+  String get aboutReportIssue =>
+      'Signaler un problème ou proposer une fonctionnalité';
+
+  @override
+  String get aboutReleases => 'Versions publiées';
+
+  @override
+  String get aboutLicenses => 'Licences';
+
+  @override
+  String get aboutLicenseSummary =>
+      'Trobar desktop est un logiciel libre sous licence GNU GPL, version 3 ou ultérieure. Le ffmpeg intégré et chaque bibliothèque conservent leurs propres licences.';
+
+  @override
+  String get showLicense => 'Licence';
+
+  @override
+  String get showThirdParty => 'Composants tiers';
+
+  @override
+  String get close => 'Fermer';
 }

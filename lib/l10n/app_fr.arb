@@ -25,5 +25,52 @@
   "keep": "Garder",
   "deleteThem": "Les supprimer",
   "syncNow": "Synchroniser",
-  "syncing": "Synchronisation…"
+  "syncing": "Synchronisation…",
+  "aboutTooltip": "À propos de Trobar",
+  "aboutTitle": "À propos",
+  "aboutVersion": "Version {version}",
+  "checkUpdates": "Vérifier les mises à jour",
+  "updateChecking": "Vérification…",
+  "updateAvailable": "Mise à jour disponible : {tag} — voir les versions publiées.",
+  "updateUpToDate": "Vous utilisez la dernière version ({version}).",
+  "updateCheckFailed": "Impossible de joindre GitHub ({error}) — réessayez plus tard.",
+  "donate": "Faire un don",
+  "aboutLinks": "Liens",
+  "aboutDocumentation": "Documentation",
+  "aboutSourceCode": "Code source",
+  "aboutReportIssue": "Signaler un problème ou proposer une fonctionnalité",
+  "aboutReleases": "Versions publiées",
+  "aboutLicenses": "Licences",
+  "aboutLicenseSummary": "Trobar desktop est un logiciel libre sous licence GNU GPL, version 3 ou ultérieure. Le ffmpeg intégré et chaque bibliothèque conservent leurs propres licences.",
+  "showLicense": "Licence",
+  "showThirdParty": "Composants tiers",
+  "close": "Fermer",
+  "@aboutVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateAvailable": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateUpToDate": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateCheckFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 }

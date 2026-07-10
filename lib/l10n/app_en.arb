@@ -100,5 +100,52 @@
         "type": "String"
       }
     }
+  },
+  "aboutTooltip": "About Trobar",
+  "aboutTitle": "About",
+  "aboutVersion": "Version {version}",
+  "checkUpdates": "Check for updates",
+  "updateChecking": "Checking…",
+  "updateAvailable": "Update available: {tag} — see Releases.",
+  "updateUpToDate": "You are running the latest release ({version}).",
+  "updateCheckFailed": "Could not reach GitHub ({error}) — try again later.",
+  "donate": "Donate",
+  "aboutLinks": "Links",
+  "aboutDocumentation": "Documentation",
+  "aboutSourceCode": "Source code",
+  "aboutReportIssue": "Report an issue or request a feature",
+  "aboutReleases": "Releases",
+  "aboutLicenses": "Licenses",
+  "aboutLicenseSummary": "Trobar desktop is free software under the GNU GPL, version 3 or later. The bundled ffmpeg and every library keep their own licenses.",
+  "showLicense": "License",
+  "showThirdParty": "Third-party",
+  "close": "Close",
+  "@aboutVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateAvailable": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateUpToDate": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateCheckFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   }
 }
