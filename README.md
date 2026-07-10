@@ -1,11 +1,16 @@
 # Trobar desktop
 
-Flutter app (Linux / macOS / Windows) that syncs Trobar library selections
-onto SD cards and local folders — the client for network-less DAPs that
-only ever see a card.
+Flutter app (Linux / macOS / Windows) that syncs
+[Trobar](https://github.com/missing-foss/trobar-server) library selections
+onto SD cards, USB drives, and local folders — the client for network-less
+DAPs that only ever see a card, and the only client that transcodes.
 
-Status: gitea#2 **M2 skeleton** — pairing + plain-copy sync. Transcoding
-(`transcode_format` devices) is detected but skipped until M3 brings ffmpeg.
+## Install
+
+Linux x64: grab the tarball from Releases (tags `desktop-vX.Y.Z`) — ffmpeg
+is bundled, untar and run `./trobar_desktop` (glibc 2.39+). On macOS,
+Windows, or older Linux distributions, build from source (below); the app
+then uses the ffmpeg from your PATH for transcoding.
 
 ## How it works
 
@@ -18,13 +23,20 @@ Status: gitea#2 **M2 skeleton** — pairing + plain-copy sync. Transcoding
   written atomically (`.part` + rename), each track is acked with the real
   byte count written, deletions prune now-empty album/artist folders, and
   files the server expected but finds missing trigger the re-download /
-  leave-deleted choice (gitea#49).
+  leave-deleted choice.
+- **Transcoding**: if the device is set to an MP3 format in the web app,
+  lossless sources (FLAC/WAV/AIFF) are converted on this machine at sync
+  time — MP3 320/256/192/128 kbit/s, tags and embedded cover art carried
+  over. The server always sends originals and stores nothing transcoded.
+  Changing the device's format re-syncs it under the new file names.
 - On-device names come from the server and are already FAT/exFAT/Windows
   safe — the client never invents its own naming.
 - Playlist selections arrive as .m3u8 files at the card root (same name,
   same order, local tracks only); files carrying the Trobar marker line are
   refreshed/removed as assignments change, hand-made playlists are never
   touched.
+- Artist pictures (if enabled for the device) are written as `artist.jpg`
+  into each artist folder.
 
 ## Develop
 
@@ -44,4 +56,9 @@ flutter build windows
 
 The UI is available in English and French (follows the system locale).
 
-Licensed GPL-3.0-or-later (see LICENSE), same as the Android client.
+## License
+
+Licensed `GPL-3.0-or-later` (see [LICENSE](LICENSE)), same as the Android
+client. Bundled third-party components (the static ffmpeg in release
+tarballs, Flutter engine, Dart packages) keep their own licenses — see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
