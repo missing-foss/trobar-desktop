@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Package the Linux x64 release tarball (gitea#137): Flutter bundle + static
+# Package the Linux x64 release tarball: Flutter bundle + static
 # ffmpeg + the license files GPL distribution requires. Run from desktop/:
 #
 #   packaging/package-linux.sh <version> <path-to-static-ffmpeg>

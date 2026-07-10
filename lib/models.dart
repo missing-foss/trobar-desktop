@@ -22,7 +22,7 @@ class DeviceInfo {
   final int? maxSizeBytes;
   final String? transcodeFormat;
 
-  /// gitea#127 — null = no artist pictures; 'small' (~512px) or 'full'.
+  /// null = no artist pictures; 'small' (~512px) or 'full'.
   final String? artistImages;
 
   const DeviceInfo({
@@ -46,12 +46,12 @@ class TrackChange {
   final int trackId;
 
   /// Server-computed on-device path — already FAT/Windows-safe (the server's
-  /// _fs_segment guarantees it, gitea#76) and already carrying the transcoded
-  /// extension on a transcoding device (gitea#2). Never derive names locally.
+  /// _fs_segment guarantees it) and already carrying the transcoded
+  /// extension on a transcoding device. Never derive names locally.
   final String relativePath;
   final int? size;
 
-  /// gitea#2: true = the client must transcode the downloaded original
+  /// true = the client must transcode the downloaded original
   /// before writing. The skeleton (M2) skips these with a clear message;
   /// M3 adds the ffmpeg path.
   final bool transcode;
@@ -71,7 +71,7 @@ class TrackChange {
       );
 }
 
-/// gitea#118 — a server-generated .m3u8 for one playlist assigned to this
+/// a server-generated.m3u8 for one playlist assigned to this
 /// device. Written at the card root; content lines carry the marker that
 /// makes the file recognisably Trobar-managed.
 class PlaylistFile {
@@ -94,10 +94,10 @@ class ChangeSet {
   final List<TrackChange> toDelete;
 
   /// What the server believes is already on this device — used only for the
-  /// missing-file spot check (gitea#49), never acted on directly.
+  /// missing-file spot check, never acted on directly.
   final List<TrackChange> downloaded;
 
-  /// gitea#118 — every playlist file this device should carry.
+  /// every playlist file this device should carry.
   final List<PlaylistFile> playlists;
 
   /// The format the transcode flags above were computed with — always

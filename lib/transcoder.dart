@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// gitea#2 M3 — the lossless→MP3 320 path. The server decides *what* gets
+// the lossless→MP3 320 path. The server decides *what* gets
 // transcoded (the `transcode` flag in /changes); this only knows *how*.
 
 import 'dart:io';

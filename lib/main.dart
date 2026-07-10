@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Trobar desktop — syncs library selections onto SD cards / local folders
-// for network-less DAPs (gitea#2): pairing, server-driven diff sync,
+// for network-less DAPs: pairing, server-driven diff sync,
 // client-side MP3 transcoding, playlists, artist images.
 
 import 'dart:convert';
@@ -29,7 +29,7 @@ const brandCanvas = Color(0xFF100E08);
 
 void main() {
   // The Linux release tarball bundles a static ffmpeg (GPL-3.0) — surface
-  // its license in Flutter's own third-party page (gitea#71/#137).
+  // its license in Flutter's own third-party page.
   LicenseRegistry.addLicense(() async* {
     final text =
         await rootBundle.loadString('packaging/licenses/ffmpeg-GPL-3.0.txt');
@@ -364,7 +364,7 @@ class _CardScreenState extends State<CardScreen> {
     try {
       var changes = await _api.getChanges();
 
-      // gitea#49: ask about files missing on the card before syncing.
+      // ask about files missing on the card before syncing.
       final missing = await engine.findMissing(changes);
       if (missing.isNotEmpty && mounted) {
         final redownload = await _askMissing(missing.length);
@@ -387,7 +387,7 @@ class _CardScreenState extends State<CardScreen> {
         setState(() => _error = result.firstError);
       }
 
-      // gitea#2 M4: leftovers no track claims (e.g. old-extension files
+      // leftovers no track claims (e.g. old-extension files
       // after a transcode-format change). Confirm-gated — the card may
       // hold files the user put there deliberately.
       final orphans = await engine.findOrphans(changes);

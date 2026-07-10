@@ -75,7 +75,7 @@ class ApiClient {
     return dest.length();
   }
 
-  /// bytesOnDevice = what actually landed on the card (gitea#2) — for a
+  /// bytesOnDevice = what actually landed on the card — for a
   /// plain copy that's the original size, for a transcode (M3) the MP3's.
   Future<void> ack(int trackId, String status, {int? bytesOnDevice}) =>
       _postJson('/api/device/ack', {
@@ -88,7 +88,7 @@ class ApiClient {
       _postJson('/api/device/storage',
           {'free_bytes': freeBytes, 'total_bytes': totalBytes});
 
-  /// gitea#127 — the artist picture for one artist folder, downscaled
+  /// the artist picture for one artist folder, downscaled
   /// server-side when the device asked for 'small'. Null on 404 (no image
   /// anywhere) — a normal outcome, not an error.
   Future<List<int>?> getArtistImage(String artist, {bool small = false}) async {
@@ -105,7 +105,7 @@ class ApiClient {
     return resp.bodyBytes;
   }
 
-  /// gitea#49 — records the user's decision about tracks found missing on
+  /// records the user's decision about tracks found missing on
   /// the card: re-queue for download, or mark excluded (stay deleted).
   Future<void> resolveMissing(
           {List<int> redownload = const [], List<int> exclude = const []}) =>

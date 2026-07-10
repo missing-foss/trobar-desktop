@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Card discovery + pairing config. The pairing token lives ON the card
-// (.trobar/device.json at its root, decided on gitea#2): plug the card into
+// (.trobar/device.json at its root, decided on): plug the card into
 // any machine running this app and it syncs as the right device. The app
 // itself keeps no per-device state.
 

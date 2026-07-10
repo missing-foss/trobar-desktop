@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// About screen (gitea#71): version, links, licenses, donate. The update
+// About screen: version, links, licenses, donate. The update
 // check is user-initiated only — one GitHub API call per button press,
 // never automatic (the app otherwise talks to nothing but your server).
 
@@ -149,7 +149,7 @@ class _AboutScreenState extends State<AboutScreen> {
                     child: Text(l.checkUpdates),
                   ),
                   // Liberapay brand yellow — a vendored "button", no external
-                  // widget script (gitea#71 decision).
+                  // widget script (a deliberate no-CDN choice).
                   FilledButton(
                     onPressed: () => launchUrl(
                         Uri.parse('https://liberapay.com/Trobar/donate')),
