@@ -1,7 +1,6 @@
-# Desktop CI — paths assume this directory is the repo root,
-# which it becomes after the public split (desktop/ -> its own repository).
-# analyze + test only: engine tests run against temp dirs and a mocked
-# API, no GTK build deps needed. Read-only token, pinned majors.
+# Desktop CI: the pre-merge verify gate. Runs on every push/PR.
+# analyze + test only: engine tests run against temp dirs and a mocked API,
+# no GTK build deps needed. Read-only token, pinned majors.
 name: ci
 on:
   push:
@@ -22,3 +21,16 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+      - name: Leak scan (household infra must never ship)
+        run: |
+          if git ls-files | xargs grep -InE "mphp|soundsync|renoir|192\.168\.50|/nfs/" \
+               | grep -viE "\.lock$|workflows/ci\.yml|dev/verify\.sh"; then
+            echo "::error::forbidden term(s) found above"; exit 1
+          fi
+      - name: Secret scan
+        # Binary download rather than gitleaks-action: the org Actions policy
+        # only allows GitHub-owned + verified-creator actions.
+        run: |
+          v=8.24.3
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${v}/gitleaks_${v}_linux_x64.tar.gz" | tar -xz gitleaks
+          ./gitleaks git --no-banner .
