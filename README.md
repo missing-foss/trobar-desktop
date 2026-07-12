@@ -7,10 +7,25 @@ DAPs that only ever see a card, and the only client that transcodes.
 
 ## Install
 
-Linux x64: grab the tarball from Releases (tags `desktop-vX.Y.Z`) — ffmpeg
-is bundled, untar and run `./trobar_desktop` (glibc 2.39+). On macOS,
-Windows, or older Linux distributions, build from source (below); the app
-then uses the ffmpeg from your PATH for transcoding.
+Grab the build for your OS from Releases (tags `desktop-vX.Y.Z`):
+
+- **Linux x64**: tarball, ffmpeg bundled — untar and run `./trobar_desktop`
+  (glibc 2.39+).
+- **Windows / macOS**: zip, ffmpeg **not** bundled — install ffmpeg
+  yourself (`winget install ffmpeg` / `brew install ffmpeg`) and make sure
+  it's on your `PATH`; transcoding is skipped otherwise. Bundling a
+  redistributable, correctly-licensed static ffmpeg is only sorted out for
+  Linux today (see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)) — it's
+  a deliberate scope cut, not an oversight, revisit if it becomes annoying.
+  These builds are also **unsigned**: Windows SmartScreen will warn
+  ("Windows protected your PC" → More info → Run anyway), and macOS
+  Gatekeeper will refuse to open it until you right-click → Open (or allow
+  it under System Settings → Privacy & Security). No code-signing
+  cert / Apple notarization yet — both are paid, out of scope for now.
+
+On older Linux distributions, or if you'd rather build it yourself, see
+Build below; the app always falls back to ffmpeg on `PATH` when none is
+bundled.
 
 ## How it works
 

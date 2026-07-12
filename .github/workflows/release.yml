@@ -1,0 +1,90 @@
+# Desktop release: builds Windows and macOS artifacts and publishes them to
+# the GitHub Release for a desktop-vX.Y.Z tag, alongside the Linux tarball
+# (which is still built and uploaded by hand — see packaging/package-linux.sh).
+#
+# Org Actions policy: GitHub-owned or verified-creator actions only.
+# subosito/flutter-action and the actions/* actions below qualify; actual
+# release creation and asset upload happens via `gh` in run: steps, not a
+# third-party release action.
+#
+# Windows/macOS builds are unsigned (no code-signing cert, no Apple
+# notarization — both paid, out of scope for this first pass). Users will
+# see an "unidentified developer" style OS warning; see README.
+name: release
+on:
+  push:
+    tags: ["desktop-v*"]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Create/update the GitHub Release and upload assets (leave off to just confirm the builds succeed)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter build windows --release
+      - name: Package zip
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}" -replace '^desktop-v', ''
+          if (-not $version -or $version -eq "${{ github.ref_name }}") { $version = "dev" }
+          $out = "trobar-desktop-$version-windows-x64.zip"
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath $out
+          echo "ASSET=$out" >> $env:GITHUB_ENV
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: ${{ env.ASSET }}
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter build macos --release
+      - name: Package zip
+        run: |
+          version="${GITHUB_REF_NAME#desktop-v}"
+          if [ "$version" = "$GITHUB_REF_NAME" ]; then version="dev"; fi
+          out="trobar-desktop-$version-macos.zip"
+          ditto -c -k --keepParent "build/macos/Build/Products/Release/trobar_desktop.app" "$out"
+          echo "ASSET=$out" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-zip
+          path: ${{ env.ASSET }}
+
+  release:
+    needs: [build-windows, build-macos]
+    if: github.event_name == 'push' || inputs.publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: "*-zip"
+          merge-multiple: true
+      - name: Create or reuse release, upload assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+                 --title "$TAG" --generate-notes
+          gh release upload "$TAG" ./*.zip --repo "$GITHUB_REPOSITORY" --clobber

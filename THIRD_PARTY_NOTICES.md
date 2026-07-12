@@ -18,6 +18,18 @@ source for the bundled build on request (missing_foss@etik.com).
 Builds from source use whatever ffmpeg is on your PATH instead — nothing
 is bundled in that case.
 
+**Windows and macOS release zips do not bundle ffmpeg either** — same
+PATH-based fallback as a source build. This is a deliberate decision, not
+an oversight: a redistributable static ffmpeg build exists for Linux
+(above) with its licensing already sorted (GPLv3 notice + source offer),
+but Windows and macOS builds are sourced from different providers with
+their own licensing to verify and their own notice/source-offer text to
+maintain per platform. Doing that properly for two more platforms was
+scoped out of the initial Windows/macOS release automation
+(missing-foss/trobar-desktop#2) to ship unsigned builds without also
+taking on a second and third GPL redistribution obligation at the same
+time. Revisit if users hit this often enough to be worth it.
+
 ## Flutter
 
 The application embeds the Flutter engine (BSD-3-Clause, Copyright 2014
