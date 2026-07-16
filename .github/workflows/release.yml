@@ -42,7 +42,7 @@ jobs:
           $out = "trobar-desktop-$version-windows-x64.zip"
           Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath $out
           echo "ASSET=$out" >> $env:GITHUB_ENV
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows-zip
           path: ${{ env.ASSET }}
@@ -63,7 +63,7 @@ jobs:
           out="trobar-desktop-$version-macos.zip"
           ditto -c -k --keepParent "build/macos/Build/Products/Release/trobar_desktop.app" "$out"
           echo "ASSET=$out" >> "$GITHUB_ENV"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos-zip
           path: ${{ env.ASSET }}
