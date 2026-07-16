@@ -81,7 +81,7 @@ class ApiClient {
       _postJson('/api/device/ack', {
         'track_id': trackId,
         'status': status,
-        if (bytesOnDevice != null) 'bytes_on_device': bytesOnDevice,
+        'bytes_on_device': ?bytesOnDevice,
       });
 
   Future<void> reportStorage({int? freeBytes, int? totalBytes}) =>
