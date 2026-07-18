@@ -38,6 +38,38 @@ Future<void> main() async {
   runApp(const TrobarApp());
 }
 
+/// Brand-consistent ThemeData for a given brightness (#19). Dark keeps the
+/// near-black brand canvas so dark mode is unchanged; light lets
+/// ColorScheme.fromSeed pick a light surface. Both derive from the burgundy
+/// seed, so the accent stays on-brand either way.
+ThemeData _brandTheme(Brightness brightness) {
+  final scheme = brightness == Brightness.dark
+      ? ColorScheme.fromSeed(
+          seedColor: brandBurgundy,
+          secondary: brandRose,
+          brightness: brightness,
+          surface: brandCanvas,
+        )
+      : ColorScheme.fromSeed(
+          seedColor: brandBurgundy,
+          secondary: brandRose,
+          brightness: brightness,
+        );
+  return ThemeData(
+    colorScheme: scheme,
+    scaffoldBackgroundColor: scheme.surface,
+    useMaterial3: true,
+  );
+}
+
+/// Primary "ink" for text/icons over the app canvas: the brand cream on the
+/// dark theme (unchanged), the theme's onSurface on light — so the light
+/// theme (#19) gets readable dark text instead of invisible cream.
+Color brandInk(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+        ? brandCream
+        : Theme.of(context).colorScheme.onSurface;
+
 class TrobarApp extends StatelessWidget {
   const TrobarApp({super.key});
 
@@ -54,16 +86,9 @@ class TrobarApp extends StatelessWidget {
             GlobalCupertinoLocalizations.delegate,
           ],
           supportedLocales: AppLocalizations.supportedLocales,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: brandBurgundy,
-              secondary: brandRose,
-              brightness: Brightness.dark,
-              surface: brandCanvas,
-            ),
-            scaffoldBackgroundColor: brandCanvas,
-            useMaterial3: true,
-          ),
+          theme: _brandTheme(Brightness.light),
+          darkTheme: _brandTheme(Brightness.dark),
+          themeMode: ThemeMode.system, // follow the OS light/dark setting (#19)
           home: const HomeScreen(),
         ),
       );
@@ -127,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: IconButton(
               tooltip: AppLocalizations.of(context).aboutTooltip,
               icon: Icon(Icons.info_outline,
-                  color: brandCream.withValues(alpha: .6)),
+                  color: brandInk(context).withValues(alpha: .6)),
               onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const AboutScreen())),
             ),
@@ -147,7 +172,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           .textTheme
                           .headlineMedium
                           ?.copyWith(
-                              color: brandCream, fontWeight: FontWeight.w600)),
+                              color: brandInk(context),
+                              fontWeight: FontWeight.w600)),
                   TextSpan(
                       text: 'ar',
                       style: Theme.of(context)
@@ -161,7 +187,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   const CircularProgressIndicator()
                 else if (_cards.isEmpty)
                   Text(AppLocalizations.of(context).noCardDetected,
-                      style: TextStyle(color: brandCream.withValues(alpha: .7)))
+                      style:
+                          TextStyle(color: brandInk(context).withValues(alpha: .7)))
                 else
                   ..._cards.map((c) => Card(
                         child: ListTile(
@@ -508,7 +535,8 @@ class _CardScreenState extends State<CardScreen> {
                 const SizedBox(height: 16),
                 Text(widget.root.path,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: brandCream.withValues(alpha: .6))),
+                    style:
+                        TextStyle(color: brandInk(context).withValues(alpha: .6))),
                 const SizedBox(height: 16),
                 if (space != null) ...[
                   LinearProgressIndicator(

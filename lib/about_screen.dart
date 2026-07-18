@@ -12,7 +12,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'l10n/gen/app_localizations.dart';
-import 'main.dart' show brandCream, brandRose;
+import 'main.dart' show brandInk, brandRose;
 
 const _repoUrl = 'https://github.com/missing-foss/trobar-desktop';
 const _docsUrl =
@@ -124,7 +124,8 @@ class _AboutScreenState extends State<AboutScreen> {
                           .textTheme
                           .headlineSmall
                           ?.copyWith(
-                              color: brandCream, fontWeight: FontWeight.w600)),
+                              color: brandInk(context),
+                              fontWeight: FontWeight.w600)),
                   TextSpan(
                       text: 'ar',
                       style: Theme.of(context)
@@ -136,7 +137,8 @@ class _AboutScreenState extends State<AboutScreen> {
               ),
               Center(
                 child: Text(l.aboutVersion(_version),
-                    style: TextStyle(color: brandCream.withValues(alpha: .7))),
+                    style:
+                        TextStyle(color: brandInk(context).withValues(alpha: .7))),
               ),
               const SizedBox(height: 16),
               Wrap(
@@ -169,7 +171,7 @@ class _AboutScreenState extends State<AboutScreen> {
                             fontSize: 13,
                             color: _updateAvailable
                                 ? brandRose
-                                : brandCream.withValues(alpha: .7))),
+                                : brandInk(context).withValues(alpha: .7))),
                   ),
                 ),
               const SizedBox(height: 20),
