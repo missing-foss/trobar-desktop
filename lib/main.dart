@@ -15,8 +15,11 @@ import 'l10n/gen/app_localizations.dart';
 
 import 'about_screen.dart';
 import 'api_client.dart';
+import 'app_prefs.dart';
 import 'card_store.dart';
+import 'locale_notifier.dart';
 import 'models.dart';
+import 'settings_screen.dart';
 import 'sync_engine.dart';
 
 // Brand palette — mirrors android/.../Theme.kt and brand/README.md.
@@ -25,7 +28,13 @@ const brandRose = Color(0xFFD76A83);
 const brandCream = Color(0xFFF9EFDF);
 const brandCanvas = Color(0xFF100E08);
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Load the app-wide language override before the first frame so the UI
+  // opens in the chosen language (#17).
+  final prefs = await AppPrefs.load();
+  localeNotifier.value =
+      prefs.language == 'system' ? null : Locale(prefs.language);
   runApp(const TrobarApp());
 }
 
@@ -33,26 +42,30 @@ class TrobarApp extends StatelessWidget {
   const TrobarApp({super.key});
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-        title: 'Trobar',
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: brandBurgundy,
-            secondary: brandRose,
-            brightness: Brightness.dark,
-            surface: brandCanvas,
+  Widget build(BuildContext context) => ValueListenableBuilder<Locale?>(
+        valueListenable: localeNotifier,
+        builder: (context, locale, _) => MaterialApp(
+          title: 'Trobar',
+          locale: locale, // null = follow the system locale (#17)
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: brandBurgundy,
+              secondary: brandRose,
+              brightness: Brightness.dark,
+              surface: brandCanvas,
+            ),
+            scaffoldBackgroundColor: brandCanvas,
+            useMaterial3: true,
           ),
-          scaffoldBackgroundColor: brandCanvas,
-          useMaterial3: true,
+          home: const HomeScreen(),
         ),
-        home: const HomeScreen(),
       );
 }
 
@@ -292,7 +305,10 @@ class CardScreen extends StatefulWidget {
 }
 
 class _CardScreenState extends State<CardScreen> {
-  late final ApiClient _api = ApiClient(widget.config);
+  // Mutable so the Settings screen can change the server URL: on change we
+  // recreate the client against the new URL (token unchanged).
+  late DeviceConfig _config = widget.config;
+  late ApiClient _api = ApiClient(_config);
 
   DeviceInfo? _info;
   ({int free, int total})? _space;
@@ -346,10 +362,17 @@ class _CardScreenState extends State<CardScreen> {
     try {
       var changes = await _api.getChanges();
 
-      // ask about files missing on the card before syncing.
+      // ask about files missing on the card before syncing — unless a
+      // standing policy (#17) says to always re-download or always leave
+      // them deleted, so unattended/repeat syncs don't prompt.
       final missing = await engine.findMissing(changes);
       if (missing.isNotEmpty && mounted) {
-        final redownload = await _askMissing(missing.length);
+        final policy = AppPrefs.instance.missingPolicy;
+        final bool? redownload = policy == 'redownload'
+            ? true
+            : policy == 'exclude'
+                ? false
+                : await _askMissing(missing.length);
         if (redownload == null) {
           setState(() => _syncing = false);
           return; // cancelled
@@ -439,12 +462,37 @@ class _CardScreenState extends State<CardScreen> {
 
   String _fmtGB(int bytes) => (bytes / 1e9).toStringAsFixed(1);
 
+  Future<void> _openSettings() async {
+    final newConfig = await Navigator.of(context).push<DeviceConfig>(
+        MaterialPageRoute(
+            builder: (_) => SettingsScreen(
+                root: widget.root, config: _config, api: _api, info: _info)));
+    if (!mounted || newConfig == null) return;
+    if (newConfig.serverUrl != _config.serverUrl) {
+      setState(() {
+        _api.close();
+        _config = newConfig;
+        _api = ApiClient(_config);
+      });
+    }
+    _load(); // pick up a storage-limit change (re-fetches device info)
+  }
+
   @override
   Widget build(BuildContext context) {
     final space = _space;
     final result = _lastResult;
     return Scaffold(
-      appBar: AppBar(title: Text(_info?.name ?? widget.root.path)),
+      appBar: AppBar(
+        title: Text(_info?.name ?? widget.root.path),
+        actions: [
+          IconButton(
+            tooltip: AppLocalizations.of(context).settingsTooltip,
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: _syncing ? null : _openSettings,
+          ),
+        ],
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
@@ -467,6 +515,22 @@ class _CardScreenState extends State<CardScreen> {
                   Text(
                       '${_fmtGB(space.free)} GB free of ${_fmtGB(space.total)} GB',
                       style: Theme.of(context).textTheme.labelSmall),
+                  const SizedBox(height: 16),
+                ],
+                // #18: show the configured allocation and warn when it can't
+                // physically fit on the card's free space.
+                if (_info?.maxSizeBytes != null) ...[
+                  Text(
+                      AppLocalizations.of(context)
+                          .storageAllocated(_fmtGB(_info!.maxSizeBytes!)),
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.labelSmall),
+                  if (space != null && _info!.maxSizeBytes! > space.free)
+                    Text(
+                        AppLocalizations.of(context).storageLimitExceedsFree,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.error)),
                   const SizedBox(height: 16),
                 ],
                 if (_syncing && _progress != null)

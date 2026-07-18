@@ -343,6 +343,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close'**
   String get close;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @settingsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTooltip;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTitle;
+
+  /// No description provided for @settingsServerUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Server URL'**
+  String get settingsServerUrl;
+
+  /// No description provided for @settingsServerUrlHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'The Trobar server this card syncs with. The pairing token is kept.'**
+  String get settingsServerUrlHelp;
+
+  /// No description provided for @settingsInvalidUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid http(s) server URL.'**
+  String get settingsInvalidUrl;
+
+  /// No description provided for @settingsLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get settingsLanguage;
+
+  /// No description provided for @settingsLanguageSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get settingsLanguageSystem;
+
+  /// No description provided for @settingsMissingPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'When files are missing on the card'**
+  String get settingsMissingPolicy;
+
+  /// No description provided for @settingsMissingAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask each time'**
+  String get settingsMissingAsk;
+
+  /// No description provided for @settingsMissingRedownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Always re-download'**
+  String get settingsMissingRedownload;
+
+  /// No description provided for @settingsMissingExclude.
+  ///
+  /// In en, this message translates to:
+  /// **'Always leave deleted'**
+  String get settingsMissingExclude;
+
+  /// No description provided for @settingsStorageLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage limit (GB)'**
+  String get settingsStorageLimit;
+
+  /// No description provided for @settingsStorageLimitHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty for no limit.'**
+  String get settingsStorageLimitHelp;
+
+  /// No description provided for @settingsInvalidLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a whole number of GB, or leave empty.'**
+  String get settingsInvalidLimit;
+
+  /// No description provided for @storageAllocated.
+  ///
+  /// In en, this message translates to:
+  /// **'Allocated: {limit} GB'**
+  String storageAllocated(String limit);
+
+  /// No description provided for @storageLimitExceedsFree.
+  ///
+  /// In en, this message translates to:
+  /// **'This limit exceeds the actual free space!'**
+  String get storageLimitExceedsFree;
 }
 
 class _AppLocalizationsDelegate

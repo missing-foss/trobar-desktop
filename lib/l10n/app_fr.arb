@@ -41,6 +41,30 @@
   "showLicense": "Licence",
   "showThirdParty": "Composants tiers",
   "close": "Fermer",
+  "save": "Enregistrer",
+  "settingsTooltip": "Réglages",
+  "settingsTitle": "Réglages",
+  "settingsServerUrl": "URL du serveur",
+  "settingsServerUrlHelp": "Le serveur Trobar avec lequel cette carte se synchronise. Le jeton d'association est conservé.",
+  "settingsInvalidUrl": "Saisissez une URL de serveur http(s) valide.",
+  "settingsLanguage": "Langue",
+  "settingsLanguageSystem": "Système",
+  "settingsMissingPolicy": "Quand des fichiers manquent sur la carte",
+  "settingsMissingAsk": "Demander à chaque fois",
+  "settingsMissingRedownload": "Toujours retélécharger",
+  "settingsMissingExclude": "Toujours laisser supprimés",
+  "settingsStorageLimit": "Limite de stockage (Go)",
+  "settingsStorageLimitHelp": "Laisser vide pour aucune limite.",
+  "settingsInvalidLimit": "Saisissez un nombre entier de Go, ou laissez vide.",
+  "storageAllocated": "Alloué : {limit} Go",
+  "@storageAllocated": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "storageLimitExceedsFree": "Cette limite dépasse l'espace réellement disponible !",
   "@aboutVersion": {
     "placeholders": {
       "version": {

@@ -154,4 +154,60 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get close => 'Close';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get settingsTooltip => 'Settings';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsServerUrl => 'Server URL';
+
+  @override
+  String get settingsServerUrlHelp =>
+      'The Trobar server this card syncs with. The pairing token is kept.';
+
+  @override
+  String get settingsInvalidUrl => 'Enter a valid http(s) server URL.';
+
+  @override
+  String get settingsLanguage => 'Language';
+
+  @override
+  String get settingsLanguageSystem => 'System';
+
+  @override
+  String get settingsMissingPolicy => 'When files are missing on the card';
+
+  @override
+  String get settingsMissingAsk => 'Ask each time';
+
+  @override
+  String get settingsMissingRedownload => 'Always re-download';
+
+  @override
+  String get settingsMissingExclude => 'Always leave deleted';
+
+  @override
+  String get settingsStorageLimit => 'Storage limit (GB)';
+
+  @override
+  String get settingsStorageLimitHelp => 'Leave empty for no limit.';
+
+  @override
+  String get settingsInvalidLimit =>
+      'Enter a whole number of GB, or leave empty.';
+
+  @override
+  String storageAllocated(String limit) {
+    return 'Allocated: $limit GB';
+  }
+
+  @override
+  String get storageLimitExceedsFree =>
+      'This limit exceeds the actual free space!';
 }

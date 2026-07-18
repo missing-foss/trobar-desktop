@@ -51,6 +51,14 @@ class ApiClient {
     }
   }
 
+  Future<void> _patchJson(String path, Map<String, dynamic> body) async {
+    final resp = await _http.patch(_uri(path),
+        headers: _headers, body: jsonEncode(body));
+    if (resp.statusCode != 200) {
+      throw ApiException('PATCH $path — HTTP ${resp.statusCode}');
+    }
+  }
+
   Future<DeviceInfo> getInfo() async =>
       DeviceInfo.fromJson(await _getJson('/api/device/info'));
 
@@ -83,6 +91,12 @@ class ApiClient {
         'status': status,
         'bytes_on_device': ?bytesOnDevice,
       });
+
+  /// Set this device's storage allocation (#18). `null` clears the limit
+  /// (sent as JSON null, mirroring the web UI's "no limit"); the server
+  /// validates it (a non-negative integer or null).
+  Future<void> updateLimit(int? maxSizeBytes) =>
+      _patchJson('/api/device/limit', {'max_size_bytes': maxSizeBytes});
 
   Future<void> reportStorage({int? freeBytes, int? totalBytes}) =>
       _postJson('/api/device/storage',
