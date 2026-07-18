@@ -350,6 +350,12 @@ abstract class AppLocalizations {
   /// **'Save'**
   String get save;
 
+  /// No description provided for @syncSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Synced: {downloaded} downloaded, {removed} removed'**
+  String syncSummary(int downloaded, int removed);
+
   /// No description provided for @settingsTooltip.
   ///
   /// In en, this message translates to:

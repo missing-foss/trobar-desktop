@@ -417,47 +417,49 @@ class _CardScreenState extends State<CardScreen> {
 
   Future<bool?> _askOrphans(List<String> orphans) {
     final preview = orphans.take(5).join('\n');
-    final more = orphans.length > 5 ? '\n… and ${orphans.length - 5} more' : '';
+    final more = orphans.length > 5
+        ? '\n${AppLocalizations.of(context).orphansMore(orphans.length - 5)}'
+        : '';
     return showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('${orphans.length} file(s) on this card are not managed '
-            'by Trobar'),
-        content: Text(
-            'Usually leftovers from a format change — but files you copied '
-            'here yourself also show up. Delete them?\n\n$preview$more'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Keep')),
-          FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Delete them')),
-        ],
-      ),
+      builder: (context) {
+        final l = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(l.orphansTitle(orphans.length)),
+          content: Text(l.orphansBody('$preview$more')),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l.keep)),
+            FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l.deleteThem)),
+          ],
+        );
+      },
     );
   }
 
   /// true = re-download, false = leave deleted, null = cancel.
   Future<bool?> _askMissing(int count) => showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: Text('$count track(s) missing on this card'),
-          content: const Text(
-              'The server expected these files to be here. Re-download them, '
-              'or leave them deleted (they will not be re-queued)?'),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel')),
-            TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Leave deleted')),
-            FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Re-download')),
-          ],
-        ),
+        builder: (context) {
+          final l = AppLocalizations.of(context);
+          return AlertDialog(
+            title: Text(l.missingTitle(count)),
+            content: Text(l.missingBody),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context), child: Text(l.cancel)),
+              TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l.leaveDeleted)),
+              FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(l.redownload)),
+            ],
+          );
+        },
       );
 
   String _fmtGB(int bytes) => (bytes / 1e9).toStringAsFixed(1);
@@ -513,7 +515,8 @@ class _CardScreenState extends State<CardScreen> {
                       value: (space.total - space.free) / space.total),
                   const SizedBox(height: 4),
                   Text(
-                      '${_fmtGB(space.free)} GB free of ${_fmtGB(space.total)} GB',
+                      AppLocalizations.of(context)
+                          .freeOfTotal(_fmtGB(space.free), _fmtGB(space.total)),
                       style: Theme.of(context).textTheme.labelSmall),
                   const SizedBox(height: 16),
                 ],
@@ -541,8 +544,8 @@ class _CardScreenState extends State<CardScreen> {
                       style: Theme.of(context).textTheme.labelSmall),
                 if (result != null && !_syncing)
                   Text(
-                      'Synced: ${result.downloadedCount} downloaded, '
-                      '${result.deletedCount} removed',
+                      AppLocalizations.of(context).syncSummary(
+                          result.downloadedCount, result.deletedCount),
                       textAlign: TextAlign.center),
                 if (_error != null)
                   Row(children: [
