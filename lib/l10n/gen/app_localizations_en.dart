@@ -159,6 +159,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get save => 'Save';
 
   @override
+  String syncSummary(int downloaded, int removed) {
+    return 'Synced: $downloaded downloaded, $removed removed';
+  }
+
+  @override
   String get settingsTooltip => 'Settings';
 
   @override

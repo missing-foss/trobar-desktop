@@ -90,6 +90,17 @@
   "showThirdParty": "Third-party",
   "close": "Close",
   "save": "Save",
+  "syncSummary": "Synced: {downloaded} downloaded, {removed} removed",
+  "@syncSummary": {
+    "placeholders": {
+      "downloaded": {
+        "type": "int"
+      },
+      "removed": {
+        "type": "int"
+      }
+    }
+  },
   "settingsTooltip": "Settings",
   "settingsTitle": "Settings",
   "settingsServerUrl": "Server URL",

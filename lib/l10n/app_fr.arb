@@ -42,6 +42,17 @@
   "showThirdParty": "Composants tiers",
   "close": "Fermer",
   "save": "Enregistrer",
+  "syncSummary": "Synchronisé : {downloaded} téléchargés, {removed} supprimés",
+  "@syncSummary": {
+    "placeholders": {
+      "downloaded": {
+        "type": "int"
+      },
+      "removed": {
+        "type": "int"
+      }
+    }
+  },
   "settingsTooltip": "Réglages",
   "settingsTitle": "Réglages",
   "settingsServerUrl": "URL du serveur",
