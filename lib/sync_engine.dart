@@ -41,6 +41,22 @@ class SyncResult {
   });
 }
 
+/// Thrown when a server-supplied path would resolve outside the sync root — a
+/// '..' component, an absolute path, a Windows drive/UNC prefix, etc. A
+/// hostile or compromised Trobar server (pairing is just a URL + token) could
+/// otherwise return crafted `relative_path` / playlist `filename` values and
+/// write arbitrary files anywhere the desktop user can — shell rc files,
+/// desktop autostart entries, SSH authorized_keys — escalating an ordinary
+/// sync to code execution. The Android client is immune (SAF treats '..' as a
+/// literal child within the granted tree); this closes the desktop-only gap
+/// and mirrors the server's own relative_to(root) confinement. See #11.
+class UnsafePathException implements Exception {
+  final String path;
+  UnsafePathException(this.path);
+  @override
+  String toString() => 'unsafe server path rejected: $path';
+}
+
 class SyncEngine {
   final ApiClient api;
   final Directory root;
@@ -59,8 +75,34 @@ class SyncEngine {
   SyncEngine(this.api, this.root,
       {this.transcoder, this.transcodeFormat, this.artistImages});
 
-  File _fileFor(String relativePath) =>
-      File(p.joinAll([root.path, ...relativePath.split('/')]));
+  /// Join a server-supplied relative path under [root], REJECTING anything
+  /// that would escape it (#11). Throws [UnsafePathException] on an absolute
+  /// path, a drive/UNC prefix, or any empty / '.' / '..' component; then
+  /// confirms containment against the canonicalised root — the belt-and-braces
+  /// catch for whatever the component checks miss (e.g. backslash separators
+  /// on Windows). The two write paths (tracks, playlists) share this guard.
+  File _fileFor(String relativePath) {
+    if (p.isAbsolute(relativePath) || p.rootPrefix(relativePath).isNotEmpty) {
+      throw UnsafePathException(relativePath);
+    }
+    final segments = relativePath.split('/');
+    for (final seg in segments) {
+      if (seg.isEmpty ||
+          seg == '.' ||
+          seg == '..' ||
+          p.isAbsolute(seg) ||
+          p.rootPrefix(seg).isNotEmpty) {
+        throw UnsafePathException(relativePath);
+      }
+    }
+    final dest = File(p.joinAll([root.path, ...segments]));
+    final rootCanon = p.canonicalize(root.path);
+    final destCanon = p.canonicalize(dest.path);
+    if (destCanon != rootCanon && !p.isWithin(rootCanon, destCanon)) {
+      throw UnsafePathException(relativePath);
+    }
+    return dest;
+  }
 
   // spot check: tracks the server believes are on the card but
   /// aren't. The caller (UI) asks the user what to do and calls
@@ -68,7 +110,12 @@ class SyncEngine {
   Future<List<TrackChange>> findMissing(ChangeSet changes) async {
     final missing = <TrackChange>[];
     for (final t in changes.downloaded) {
-      if (!await _fileFor(t.relativePath).exists()) missing.add(t);
+      try {
+        if (!await _fileFor(t.relativePath).exists()) missing.add(t);
+      } on UnsafePathException {
+        // A crafted server path — never report it as "missing" (that would
+        // prompt a re-download of it); ignore it entirely.
+      }
     }
     return missing;
   }
@@ -205,14 +252,21 @@ class SyncEngine {
   /// playlist. The user's own playlist files (no marker) are never touched.
   Future<int> _writePlaylists(List<PlaylistFile> playlists) async {
     final expected = <String>{};
+    var written = 0;
     for (final pl in playlists) {
+      File f;
+      try {
+        f = _fileFor(pl.filename); // #11: same path-traversal guard as tracks
+      } on UnsafePathException {
+        continue; // skip a crafted playlist filename, keep writing the rest
+      }
       expected.add(pl.filename);
-      final f = File(p.join(root.path, pl.filename));
       final current =
           await f.exists() ? await f.readAsString() : null;
       if (current != pl.content) {
         await f.writeAsString(pl.content, flush: true);
       }
+      written++;
     }
     await for (final e in root.list(followLinks: false)) {
       if (e is! File || !e.path.toLowerCase().endsWith('.m3u8')) continue;
@@ -228,7 +282,7 @@ class SyncEngine {
         // unreadable — leave it alone
       }
     }
-    return playlists.length;
+    return written;
   }
 
   /// Files on the card no current track claims: old-extension leftovers
@@ -259,7 +313,12 @@ class SyncEngine {
 
   Future<void> deleteOrphans(List<String> relativePaths) async {
     for (final rel in relativePaths) {
-      final f = _fileFor(rel);
+      File f;
+      try {
+        f = _fileFor(rel);
+      } on UnsafePathException {
+        continue; // never delete through an escaping path
+      }
       if (await f.exists()) await f.delete();
       await _pruneEmptyParents(f);
     }
