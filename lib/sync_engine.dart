@@ -11,7 +11,6 @@ import 'package:path/path.dart' as p;
 import 'api_client.dart';
 import 'card_store.dart';
 import 'models.dart';
-import 'transcoder.dart';
 
 class SyncProgress {
   final int done;
@@ -22,21 +21,14 @@ class SyncProgress {
 
 class SyncResult {
   final int downloadedCount;
-  final int transcodedCount;
   final int deletedCount;
   final int playlistCount;
-
-  /// Tracks the server wants transcoded when no encoder is available on
-  /// this machine — left `pending` server-side, surfaced in the UI.
-  final int skippedTranscode;
   final String? firstError;
 
   const SyncResult({
     this.downloadedCount = 0,
-    this.transcodedCount = 0,
     this.deletedCount = 0,
     this.playlistCount = 0,
-    this.skippedTranscode = 0,
     this.firstError,
   });
 }
@@ -61,19 +53,10 @@ class SyncEngine {
   final ApiClient api;
   final Directory root;
 
-  /// Null = no encoder on this machine; transcode-flagged tracks are then
-  /// skipped (they stay pending) instead of failing the sync.
-  final Transcoder? transcoder;
-
-  /// The device's transcode_format from /api/device/info — what the
-  /// transcoder should produce for flagged tracks.
-  final String? transcodeFormat;
-
   /// device-level artist pictures: null = off, 'small'/'full'.
   final String? artistImages;
 
-  SyncEngine(this.api, this.root,
-      {this.transcoder, this.transcodeFormat, this.artistImages});
+  SyncEngine(this.api, this.root, {this.artistImages});
 
   /// Join a server-supplied relative path under [root], REJECTING anything
   /// that would escape it (#11). Throws [UnsafePathException] on an absolute
@@ -123,14 +106,8 @@ class SyncEngine {
   Future<SyncResult> run(ChangeSet changes,
       {void Function(SyncProgress)? onProgress}) async {
     var downloaded = 0;
-    var transcoded = 0;
     var deleted = 0;
-    var skippedTranscode = 0;
     String? firstError;
-    // The payload's format is authoritative — it's what the flags were
-    // computed with; the constructor value is only a fallback for older
-    // servers that don't send it.
-    final format = changes.transcodeFormat ?? transcodeFormat;
 
     for (final t in changes.toDelete) {
       try {
@@ -149,40 +126,19 @@ class SyncEngine {
     for (final t in changes.toDownload) {
       done++;
       onProgress?.call(SyncProgress(done, total, t.relativePath));
-      if (t.transcode && (transcoder == null || format == null)) {
-        // No encoder here — the track stays `pending` server-side so a
-        // machine with ffmpeg (or a later install) picks it up cleanly.
-        skippedTranscode++;
-        firstError ??=
-            'ffmpeg not found — ${t.relativePath} skipped (still pending)';
-        continue;
-      }
       try {
+        // The server serves the already-converted bytes for a transcoding
+        // device (the track's relativePath already carries the .mp3
+        // extension), so the client just downloads whatever it's given —
+        // atomic .part + rename, same as any other track.
         final dest = _fileFor(t.relativePath);
         await dest.parent.create(recursive: true);
         final part = File('${dest.path}.part');
         try {
-          if (t.transcode) {
-            // Original lands in system temp (never on the slow FAT card),
-            // ffmpeg writes the MP3 straight to the card's .part file.
-            final tmp = await Directory.systemTemp.createTemp('trobar-tc-');
-            try {
-              final original = File(p.join(tmp.path, 'original'));
-              await api.downloadTrack(t.trackId, original);
-              await transcoder!.transcode(original, part, format!);
-            } finally {
-              await tmp.delete(recursive: true);
-            }
-            await part.rename(dest.path);
-            final bytes = await dest.length();
-            await api.ack(t.trackId, 'downloaded', bytesOnDevice: bytes);
-            transcoded++;
-          } else {
-            final bytes = await api.downloadTrack(t.trackId, part);
-            await part.rename(dest.path);
-            await api.ack(t.trackId, 'downloaded', bytesOnDevice: bytes);
-            downloaded++;
-          }
+          final bytes = await api.downloadTrack(t.trackId, part);
+          await part.rename(dest.path);
+          await api.ack(t.trackId, 'downloaded', bytesOnDevice: bytes);
+          downloaded++;
         } catch (e) {
           if (await part.exists()) await part.delete();
           rethrow;
@@ -214,10 +170,8 @@ class SyncEngine {
 
     return SyncResult(
       downloadedCount: downloaded,
-      transcodedCount: transcoded,
       deletedCount: deleted,
       playlistCount: playlistCount,
-      skippedTranscode: skippedTranscode,
       firstError: firstError,
     );
   }

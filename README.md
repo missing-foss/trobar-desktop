@@ -3,29 +3,23 @@
 Flutter app (Linux / macOS / Windows) that syncs
 [Trobar](https://github.com/missing-foss/trobar-server) library selections
 onto SD cards, USB drives, and local folders — the client for network-less
-DAPs that only ever see a card, and the only client that transcodes.
+DAPs that only ever see a card.
 
 ## Install
 
 Grab the build for your OS from Releases (tags `desktop-vX.Y.Z`):
 
-- **Linux x64**: tarball, ffmpeg bundled — untar and run `./trobar_desktop`
-  (glibc 2.39+).
-- **Windows / macOS**: zip, ffmpeg **not** bundled — install ffmpeg
-  yourself (`winget install ffmpeg` / `brew install ffmpeg`) and make sure
-  it's on your `PATH`; transcoding is skipped otherwise. Bundling a
-  redistributable, correctly-licensed static ffmpeg is only sorted out for
-  Linux today (see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)) — it's
-  a deliberate scope cut, not an oversight, revisit if it becomes annoying.
-  These builds are also **unsigned**: Windows SmartScreen will warn
-  ("Windows protected your PC" → More info → Run anyway), and macOS
+- **Linux x64**: tarball — untar and run `./trobar_desktop` (glibc 2.39+).
+- **Windows / macOS**: zip — unzip and run. No external dependencies
+  (transcoding is handled by the server, so ffmpeg is no longer needed on
+  any platform). These builds are **unsigned**: Windows SmartScreen will
+  warn ("Windows protected your PC" → More info → Run anyway), and macOS
   Gatekeeper will refuse to open it until you right-click → Open (or allow
   it under System Settings → Privacy & Security). No code-signing
   cert / Apple notarization yet — both are paid, out of scope for now.
 
 On older Linux distributions, or if you'd rather build it yourself, see
-Build below; the app always falls back to ffmpeg on `PATH` when none is
-bundled.
+Build below.
 
 ## How it works
 
@@ -39,11 +33,11 @@ bundled.
   byte count written, deletions prune now-empty album/artist folders, and
   files the server expected but finds missing trigger the re-download /
   leave-deleted choice.
-- **Transcoding**: if the device is set to an MP3 format in the web app,
-  lossless sources (FLAC/WAV/AIFF) are converted on this machine at sync
-  time — MP3 320/256/192/128 kbit/s, tags and embedded cover art carried
-  over. The server always sends originals and stores nothing transcoded.
-  Changing the device's format re-syncs it under the new file names.
+- **Transcoding is server-side**: if the device is set to an MP3 format in
+  the web app, the server converts lossless sources (FLAC/WAV/AIFF) to MP3
+  320/256/192/128 kbit/s on demand and streams the converted bytes — the
+  client just downloads whatever it's served (no local ffmpeg). Changing the
+  device's format re-syncs it under the new file names.
 - On-device names come from the server and are already FAT/exFAT/Windows
   safe — the client never invents its own naming.
 - Playlist selections arrive as .m3u8 files at the card root (same name,
@@ -74,6 +68,6 @@ The UI is available in English and French (follows the system locale).
 ## License
 
 Licensed `GPL-3.0-or-later` (see [LICENSE](LICENSE)), same as the Android
-client. Bundled third-party components (the static ffmpeg in release
-tarballs, Flutter engine, Dart packages) keep their own licenses — see
+client. Bundled third-party components (the Flutter engine and Dart
+packages) keep their own licenses — see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

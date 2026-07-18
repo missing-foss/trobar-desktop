@@ -29,7 +29,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo_bard.png
-    # About screen: the app's own license and the bundled
-    # ffmpeg's, shown offline in-app.
+    # About screen: the app's own license, shown offline in-app.
     - LICENSE
-    - packaging/licenses/ffmpeg-GPL-3.0.txt

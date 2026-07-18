@@ -40,27 +40,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get pairButton => 'Associer';
 
   @override
-  String transcodeActive(String format) {
-    return 'Les morceaux lossless sont convertis en $format kbit/s sur cette machine.';
-  }
-
-  @override
-  String get transcodeNoFfmpeg =>
-      'ffmpeg introuvable — les morceaux à convertir seront ignorés. Installez ffmpeg puis rouvrez cette carte.';
-
-  @override
   String freeOfTotal(String free, String total) {
     return '$free Go libres sur $total Go';
-  }
-
-  @override
-  String syncSummary(int downloaded, int transcoded, int removed) {
-    return 'Synchronisé : $downloaded téléchargés, $transcoded convertis, $removed supprimés';
-  }
-
-  @override
-  String syncSummarySkipped(int skipped) {
-    return ', $skipped ignorés (ffmpeg absent)';
   }
 
   @override
@@ -164,7 +145,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get aboutLicenseSummary =>
-      'Trobar desktop est un logiciel libre sous licence GNU GPL, version 3 ou ultérieure. Le ffmpeg intégré et chaque bibliothèque conservent leurs propres licences.';
+      'Trobar desktop est un logiciel libre sous licence GNU GPL, version 3 ou ultérieure. Chaque bibliothèque intégrée conserve sa propre licence.';
 
   @override
   String get showLicense => 'Licence';

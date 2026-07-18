@@ -204,8 +204,7 @@ class _AboutScreenState extends State<AboutScreen> {
                           child: Text(l.showLicense),
                         ),
                         // Flutter's own registry: every Dart package's
-                        // license, plus the ffmpeg entry registered in
-                        // main().
+                        // license.
                         OutlinedButton(
                           onPressed: () => showLicensePage(
                               context: context,

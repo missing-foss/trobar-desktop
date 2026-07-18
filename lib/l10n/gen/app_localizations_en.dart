@@ -40,27 +40,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pairButton => 'Pair';
 
   @override
-  String transcodeActive(String format) {
-    return 'Lossless tracks are transcoded to $format kbit/s on this machine.';
-  }
-
-  @override
-  String get transcodeNoFfmpeg =>
-      'ffmpeg not found — transcoded tracks will be skipped. Install ffmpeg and reopen this card.';
-
-  @override
   String freeOfTotal(String free, String total) {
     return '$free GB free of $total GB';
-  }
-
-  @override
-  String syncSummary(int downloaded, int transcoded, int removed) {
-    return 'Synced: $downloaded downloaded, $transcoded transcoded, $removed removed';
-  }
-
-  @override
-  String syncSummarySkipped(int skipped) {
-    return ', $skipped skipped (no ffmpeg)';
   }
 
   @override
@@ -163,7 +144,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutLicenseSummary =>
-      'Trobar desktop is free software under the GNU GPL, version 3 or later. The bundled ffmpeg and every library keep their own licenses.';
+      'Trobar desktop is free software under the GNU GPL, version 3 or later. Every bundled library keeps its own license.';
 
   @override
   String get showLicense => 'License';
