@@ -89,6 +89,30 @@
   "showLicense": "License",
   "showThirdParty": "Third-party",
   "close": "Close",
+  "save": "Save",
+  "settingsTooltip": "Settings",
+  "settingsTitle": "Settings",
+  "settingsServerUrl": "Server URL",
+  "settingsServerUrlHelp": "The Trobar server this card syncs with. The pairing token is kept.",
+  "settingsInvalidUrl": "Enter a valid http(s) server URL.",
+  "settingsLanguage": "Language",
+  "settingsLanguageSystem": "System",
+  "settingsMissingPolicy": "When files are missing on the card",
+  "settingsMissingAsk": "Ask each time",
+  "settingsMissingRedownload": "Always re-download",
+  "settingsMissingExclude": "Always leave deleted",
+  "settingsStorageLimit": "Storage limit (GB)",
+  "settingsStorageLimitHelp": "Leave empty for no limit.",
+  "settingsInvalidLimit": "Enter a whole number of GB, or leave empty.",
+  "storageAllocated": "Allocated: {limit} GB",
+  "@storageAllocated": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "storageLimitExceedsFree": "This limit exceeds the actual free space!",
   "@aboutVersion": {
     "placeholders": {
       "version": {

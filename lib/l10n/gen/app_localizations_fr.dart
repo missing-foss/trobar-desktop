@@ -155,4 +155,62 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get close => 'Fermer';
+
+  @override
+  String get save => 'Enregistrer';
+
+  @override
+  String get settingsTooltip => 'Réglages';
+
+  @override
+  String get settingsTitle => 'Réglages';
+
+  @override
+  String get settingsServerUrl => 'URL du serveur';
+
+  @override
+  String get settingsServerUrlHelp =>
+      'Le serveur Trobar avec lequel cette carte se synchronise. Le jeton d\'association est conservé.';
+
+  @override
+  String get settingsInvalidUrl =>
+      'Saisissez une URL de serveur http(s) valide.';
+
+  @override
+  String get settingsLanguage => 'Langue';
+
+  @override
+  String get settingsLanguageSystem => 'Système';
+
+  @override
+  String get settingsMissingPolicy =>
+      'Quand des fichiers manquent sur la carte';
+
+  @override
+  String get settingsMissingAsk => 'Demander à chaque fois';
+
+  @override
+  String get settingsMissingRedownload => 'Toujours retélécharger';
+
+  @override
+  String get settingsMissingExclude => 'Toujours laisser supprimés';
+
+  @override
+  String get settingsStorageLimit => 'Limite de stockage (Go)';
+
+  @override
+  String get settingsStorageLimitHelp => 'Laisser vide pour aucune limite.';
+
+  @override
+  String get settingsInvalidLimit =>
+      'Saisissez un nombre entier de Go, ou laissez vide.';
+
+  @override
+  String storageAllocated(String limit) {
+    return 'Alloué : $limit Go';
+  }
+
+  @override
+  String get storageLimitExceedsFree =>
+      'Cette limite dépasse l\'espace réellement disponible !';
 }
