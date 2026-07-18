@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Trobar desktop — syncs library selections onto SD cards / local folders
-// for network-less DAPs: pairing, server-driven diff sync,
-// client-side MP3 transcoding, playlists, artist images.
+// for network-less DAPs: pairing, server-driven diff sync, playlists,
+// artist images. (Transcoding to MP3 is done server-side; the client just
+// downloads whatever bytes the server serves.)
 
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
-import 'package:flutter/foundation.dart' show LicenseEntryWithLineBreaks, LicenseRegistry;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'l10n/gen/app_localizations.dart';
@@ -19,7 +18,6 @@ import 'api_client.dart';
 import 'card_store.dart';
 import 'models.dart';
 import 'sync_engine.dart';
-import 'transcoder.dart';
 
 // Brand palette — mirrors android/.../Theme.kt and brand/README.md.
 const brandBurgundy = Color(0xFFA83250);
@@ -28,13 +26,6 @@ const brandCream = Color(0xFFF9EFDF);
 const brandCanvas = Color(0xFF100E08);
 
 void main() {
-  // The Linux release tarball bundles a static ffmpeg (GPL-3.0) — surface
-  // its license in Flutter's own third-party page.
-  LicenseRegistry.addLicense(() async* {
-    final text =
-        await rootBundle.loadString('packaging/licenses/ffmpeg-GPL-3.0.txt');
-    yield LicenseEntryWithLineBreaks(const ['ffmpeg (bundled static build)'], text);
-  });
   runApp(const TrobarApp());
 }
 
@@ -302,8 +293,6 @@ class CardScreen extends StatefulWidget {
 
 class _CardScreenState extends State<CardScreen> {
   late final ApiClient _api = ApiClient(widget.config);
-  Transcoder? _transcoder;
-  bool _transcoderChecked = false;
 
   DeviceInfo? _info;
   ({int free, int total})? _space;
@@ -326,15 +315,10 @@ class _CardScreenState extends State<CardScreen> {
 
   Future<void> _load() async {
     try {
-      final transcoder = _transcoderChecked
-          ? _transcoder
-          : await FfmpegTranscoder.locate();
       final info = await _api.getInfo();
       final space = await volumeSpace(widget.root);
       if (!mounted) return;
       setState(() {
-        _transcoder = transcoder;
-        _transcoderChecked = true;
         _info = info;
         _space = space;
       });
@@ -349,18 +333,16 @@ class _CardScreenState extends State<CardScreen> {
       _error = null;
       _lastResult = null;
     });
-    // Fresh device info per sync — the web UI can change the transcode
-    // format or artist-image setting while this screen is open.
+    // Fresh device info per sync — the web UI can change the artist-image
+    // setting while this screen is open.
     try {
       final info = await _api.getInfo();
       if (mounted) setState(() => _info = info);
     } catch (_) {
-      // keep the last known info; /changes still carries the format
+      // keep the last known info
     }
-    final engine = SyncEngine(_api, widget.root,
-        transcoder: _transcoder,
-        transcodeFormat: _info?.transcodeFormat,
-        artistImages: _info?.artistImages);
+    final engine =
+        SyncEngine(_api, widget.root, artistImages: _info?.artistImages);
     try {
       var changes = await _api.getChanges();
 
@@ -477,22 +459,6 @@ class _CardScreenState extends State<CardScreen> {
                 Text(widget.root.path,
                     textAlign: TextAlign.center,
                     style: TextStyle(color: brandCream.withValues(alpha: .6))),
-                if (_info?.transcodeFormat != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: _transcoder != null
-                        ? Text(
-                            AppLocalizations.of(context).transcodeActive(
-                                (_info!.transcodeFormat ?? '')
-                                    .replaceFirst('mp3_', 'MP3 ')),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                color: brandCream.withValues(alpha: .6)))
-                        : Text(AppLocalizations.of(context).transcodeNoFfmpeg,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                color: Theme.of(context).colorScheme.error)),
-                  ),
                 const SizedBox(height: 16),
                 if (space != null) ...[
                   LinearProgressIndicator(
@@ -512,9 +478,7 @@ class _CardScreenState extends State<CardScreen> {
                 if (result != null && !_syncing)
                   Text(
                       'Synced: ${result.downloadedCount} downloaded, '
-                      '${result.transcodedCount} transcoded, '
-                      '${result.deletedCount} removed'
-                      '${result.skippedTranscode > 0 ? ', ${result.skippedTranscode} skipped (no ffmpeg)' : ''}',
+                      '${result.deletedCount} removed',
                       textAlign: TextAlign.center),
                 if (_error != null)
                   Row(children: [

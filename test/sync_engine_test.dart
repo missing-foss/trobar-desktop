@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Engine-level tests against a fake HTTP layer and a temp-dir "card" —
-// covers the M2 contract: atomic writes, real-bytes ack, transcode skip,
-// delete + empty-dir pruning, and the missing-file spot check.
+// covers the sync contract: atomic writes, real-bytes ack, delete + empty-dir
+// pruning, the missing-file spot check, and the #11 path-traversal guard.
 
 import 'dart:convert';
 import 'dart:io';
@@ -45,8 +45,8 @@ ApiClient _client(Map<int, List<int>> files, List<Map<String, dynamic>> acks,
   }));
 }
 
-TrackChange _track(int id, String path, {bool transcode = false, int? size}) =>
-    TrackChange(trackId: id, relativePath: path, transcode: transcode, size: size);
+TrackChange _track(int id, String path, {int? size}) =>
+    TrackChange(trackId: id, relativePath: path, size: size);
 
 void main() {
   late Directory card;
@@ -85,19 +85,24 @@ void main() {
         isEmpty);
   });
 
-  test('transcode-flagged tracks are skipped, not acked (M2)', () async {
+  test('a server-transcoded (.mp3) track is downloaded like any other',
+      () async {
+    // Transcoding is server-side now: the server serves the already-converted
+    // bytes under an .mp3 path, so the client just downloads them (#15).
     final acks = <Map<String, dynamic>>[];
-    final engine = SyncEngine(_client({}, acks), card);
+    final engine = SyncEngine(_client({1: List.filled(42, 3)}, acks), card);
 
     final result = await engine.run(ChangeSet(
-      toDownload: [_track(1, 'A/B/01 - X.mp3', transcode: true)],
+      toDownload: [_track(1, 'A/B/01 - X.mp3')],
       toDelete: const [],
       downloaded: const [],
     ));
 
-    expect(result.skippedTranscode, 1);
-    expect(result.downloadedCount, 0);
-    expect(acks, isEmpty);
+    expect(result.downloadedCount, 1);
+    expect(await File(p.join(card.path, 'A', 'B', '01 - X.mp3')).length(), 42);
+    expect(acks, [
+      {'track_id': 1, 'status': 'downloaded', 'bytes_on_device': 42}
+    ]);
   });
 
   test('a failed download leaves no partial file and keeps syncing', () async {

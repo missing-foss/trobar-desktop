@@ -152,35 +152,11 @@ abstract class AppLocalizations {
   /// **'Pair'**
   String get pairButton;
 
-  /// No description provided for @transcodeActive.
-  ///
-  /// In en, this message translates to:
-  /// **'Lossless tracks are transcoded to {format} kbit/s on this machine.'**
-  String transcodeActive(String format);
-
-  /// No description provided for @transcodeNoFfmpeg.
-  ///
-  /// In en, this message translates to:
-  /// **'ffmpeg not found — transcoded tracks will be skipped. Install ffmpeg and reopen this card.'**
-  String get transcodeNoFfmpeg;
-
   /// No description provided for @freeOfTotal.
   ///
   /// In en, this message translates to:
   /// **'{free} GB free of {total} GB'**
   String freeOfTotal(String free, String total);
-
-  /// No description provided for @syncSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'Synced: {downloaded} downloaded, {transcoded} transcoded, {removed} removed'**
-  String syncSummary(int downloaded, int transcoded, int removed);
-
-  /// No description provided for @syncSummarySkipped.
-  ///
-  /// In en, this message translates to:
-  /// **', {skipped} skipped (no ffmpeg)'**
-  String syncSummarySkipped(int skipped);
 
   /// No description provided for @missingTitle.
   ///
@@ -347,7 +323,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutLicenseSummary.
   ///
   /// In en, this message translates to:
-  /// **'Trobar desktop is free software under the GNU GPL, version 3 or later. The bundled ffmpeg and every library keep their own licenses.'**
+  /// **'Trobar desktop is free software under the GNU GPL, version 3 or later. Every bundled library keeps its own license.'**
   String get aboutLicenseSummary;
 
   /// No description provided for @showLicense.

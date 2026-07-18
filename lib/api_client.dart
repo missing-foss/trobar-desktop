@@ -75,8 +75,8 @@ class ApiClient {
     return dest.length();
   }
 
-  /// bytesOnDevice = what actually landed on the card — for a
-  /// plain copy that's the original size, for a transcode (M3) the MP3's.
+  /// bytesOnDevice = what actually landed on the card — the size of the file
+  /// the server served (already-transcoded MP3 for a transcoding device).
   Future<void> ack(int trackId, String status, {int? bytesOnDevice}) =>
       _postJson('/api/device/ack', {
         'track_id': trackId,

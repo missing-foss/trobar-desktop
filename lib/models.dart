@@ -20,7 +20,6 @@ class DeviceInfo {
   final String name;
   final String deviceType;
   final int? maxSizeBytes;
-  final String? transcodeFormat;
 
   /// null = no artist pictures; 'small' (~512px) or 'full'.
   final String? artistImages;
@@ -29,7 +28,6 @@ class DeviceInfo {
     required this.name,
     required this.deviceType,
     this.maxSizeBytes,
-    this.transcodeFormat,
     this.artistImages,
   });
 
@@ -37,7 +35,6 @@ class DeviceInfo {
         name: json['name'] as String,
         deviceType: json['device_type'] as String? ?? 'sdcard',
         maxSizeBytes: json['max_size_bytes'] as int?,
-        transcodeFormat: json['transcode_format'] as String?,
         artistImages: json['artist_images'] as String?,
       );
 }
@@ -46,28 +43,23 @@ class TrackChange {
   final int trackId;
 
   /// Server-computed on-device path — already FAT/Windows-safe (the server's
-  /// _fs_segment guarantees it) and already carrying the transcoded
-  /// extension on a transcoding device. Never derive names locally.
+  /// _fs_segment guarantees it) and already carrying the correct extension
+  /// (incl. .mp3 when the server transcodes for a device). Never derive names
+  /// locally. The server serves the already-converted bytes, so the client
+  /// just downloads whatever it's given — there is no client-side transcode.
   final String relativePath;
   final int? size;
-
-  /// true = the client must transcode the downloaded original
-  /// before writing. The skeleton (M2) skips these with a clear message;
-  /// M3 adds the ffmpeg path.
-  final bool transcode;
 
   const TrackChange({
     required this.trackId,
     required this.relativePath,
     this.size,
-    this.transcode = false,
   });
 
   factory TrackChange.fromJson(Map<String, dynamic> json) => TrackChange(
         trackId: json['track_id'] as int,
         relativePath: json['relative_path'] as String,
         size: json['size'] as int?,
-        transcode: json['transcode'] == true,
       );
 }
 
@@ -100,18 +92,11 @@ class ChangeSet {
   /// every playlist file this device should carry.
   final List<PlaylistFile> playlists;
 
-  /// The format the transcode flags above were computed with — always
-  /// prefer this over a separately-fetched device info (a mid-session
-  /// format change in the web UI made a stale-info client encode at the
-  /// old bitrate).
-  final String? transcodeFormat;
-
   const ChangeSet({
     required this.toDownload,
     required this.toDelete,
     required this.downloaded,
     this.playlists = const [],
-    this.transcodeFormat,
   });
 
   factory ChangeSet.fromJson(Map<String, dynamic> json) => ChangeSet(
@@ -131,6 +116,5 @@ class ChangeSet {
           for (final t in (json['playlists'] as List? ?? []))
             PlaylistFile.fromJson(t as Map<String, dynamic>)
         ],
-        transcodeFormat: json['transcode_format'] as String?,
       );
 }
