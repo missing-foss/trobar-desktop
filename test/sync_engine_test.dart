@@ -235,6 +235,112 @@ void main() {
     expect(orphans, ['My Own.m3u8']);
   });
 
+  group('path-traversal guard (#11): server paths only write inside the root',
+      () {
+    // A file just OUTSIDE the card root; a crafted "../…" or absolute server
+    // path resolves to it. Each test asserts it's never touched.
+    File victimFile(String suffix) =>
+        File(p.join(card.parent.path,
+            'trobar-victim-${DateTime.now().microsecondsSinceEpoch}-$suffix'));
+
+    test('a ".." download target is rejected; siblings still sync', () async {
+      final victim = victimFile('dl.txt');
+      await victim.writeAsString('original');
+      addTearDown(() { if (victim.existsSync()) victim.deleteSync(); });
+
+      final acks = <Map<String, dynamic>>[];
+      final engine = SyncEngine(
+          _client({1: utf8.encode('EVIL'), 2: List.filled(5, 1)}, acks), card);
+      final result = await engine.run(ChangeSet(
+        toDownload: [
+          _track(1, '../${p.basename(victim.path)}'),
+          _track(2, 'A/B/ok.flac'),
+        ],
+        toDelete: const [],
+        downloaded: const [],
+      ));
+
+      expect(victim.readAsStringSync(), 'original'); // never overwritten
+      expect(result.downloadedCount, 1); // only the in-root track
+      expect(result.firstError, isNotNull); // surfaced
+      expect(File(p.join(card.path, 'A', 'B', 'ok.flac')).existsSync(), isTrue);
+    });
+
+    test('an absolute download target is rejected', () async {
+      final victim = victimFile('abs.txt');
+      addTearDown(() { if (victim.existsSync()) victim.deleteSync(); });
+
+      final engine = SyncEngine(_client({1: utf8.encode('EVIL')}, []), card);
+      final result = await engine.run(ChangeSet(
+        toDownload: [_track(1, victim.path)], // absolute path
+        toDelete: const [],
+        downloaded: const [],
+      ));
+
+      expect(victim.existsSync(), isFalse); // never created
+      expect(result.downloadedCount, 0);
+      expect(result.firstError, isNotNull);
+    });
+
+    test('a ".." playlist filename is skipped; good playlists still write',
+        () async {
+      final victim = victimFile('pl.m3u8');
+      addTearDown(() { if (victim.existsSync()) victim.deleteSync(); });
+
+      final engine = SyncEngine(_client({}, []), card);
+      final good = const PlaylistFile(
+          name: 'Good', filename: 'Good.m3u8', content: '#EXTM3U\n');
+      final evil = PlaylistFile(
+          name: 'Evil',
+          filename: '../${p.basename(victim.path)}',
+          content: 'EVIL');
+      final result = await engine.run(ChangeSet(
+        toDownload: const [],
+        toDelete: const [],
+        downloaded: const [],
+        playlists: [evil, good],
+      ));
+
+      expect(victim.existsSync(), isFalse); // not written outside root
+      expect(File(p.join(card.path, 'Good.m3u8')).existsSync(), isTrue);
+      expect(result.playlistCount, 1); // only the safe one counted
+    });
+
+    test('a ".." delete target cannot remove a file outside the root',
+        () async {
+      final victim = victimFile('del.txt');
+      await victim.writeAsString('keep me');
+      addTearDown(() { if (victim.existsSync()) victim.deleteSync(); });
+
+      final engine = SyncEngine(_client({}, []), card);
+      final result = await engine.run(ChangeSet(
+        toDownload: const [],
+        toDelete: [_track(9, '../${p.basename(victim.path)}')],
+        downloaded: const [],
+      ));
+
+      expect(victim.existsSync(), isTrue); // untouched
+      expect(result.deletedCount, 0);
+      expect(result.firstError, isNotNull);
+    });
+
+    test('a plain in-root path is unaffected by the guard', () async {
+      final acks = <Map<String, dynamic>>[];
+      final engine = SyncEngine(_client({1: List.filled(3, 9)}, acks), card);
+      final result = await engine.run(ChangeSet(
+        toDownload: [_track(1, 'Artist/Album/01 - Fine.flac')],
+        toDelete: const [],
+        downloaded: const [],
+      ));
+      expect(result.downloadedCount, 1);
+      expect(result.firstError, isNull);
+      expect(
+          File(p.join(card.path, 'Artist', 'Album', '01 - Fine.flac'))
+              .existsSync(),
+          isTrue);
+    });
+  });
+
   test('artist images: honours device setting, size param, never overwrites',
       () async {
     for (final rel in ['Beck/Al/01 - x.mp3', 'Muse/Al/01 - y.mp3']) {
