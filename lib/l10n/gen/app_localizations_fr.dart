@@ -218,4 +218,18 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get storageLimitExceedsFree =>
       'Cette limite dépasse l\'espace réellement disponible !';
+
+  @override
+  String lastSync(String when) {
+    return 'Dernière synchro : $when';
+  }
+
+  @override
+  String get copyError => 'Copier l\'erreur';
+
+  @override
+  String get clearError => 'Effacer';
+
+  @override
+  String get errorCopied => 'Erreur copiée dans le presse-papiers';
 }

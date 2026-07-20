@@ -451,6 +451,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This limit exceeds the actual free space!'**
   String get storageLimitExceedsFree;
+
+  /// No description provided for @lastSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Last sync: {when}'**
+  String lastSync(String when);
+
+  /// No description provided for @copyError.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy error'**
+  String get copyError;
+
+  /// No description provided for @clearError.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clearError;
+
+  /// No description provided for @errorCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Error copied to clipboard'**
+  String get errorCopied;
 }
 
 class _AppLocalizationsDelegate

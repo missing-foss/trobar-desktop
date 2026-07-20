@@ -151,5 +151,16 @@
         "type": "String"
       }
     }
-  }
+  },
+  "lastSync": "Last sync: {when}",
+  "@lastSync": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "copyError": "Copy error",
+  "clearError": "Clear",
+  "errorCopied": "Error copied to clipboard"
 }

@@ -17,6 +17,49 @@ class DeviceConfig {
   Map<String, dynamic> toJson() => {'server_url': serverUrl, 'token': token};
 }
 
+/// The outcome of the last sync, persisted on the card
+/// (`.trobar/last_sync.json`) so it survives reopening the card — on any
+/// machine, even offline. The desktop app itself keeps no per-device state, so
+/// this rides with the card like the pairing config does (#20).
+class SyncOutcome {
+  final DateTime syncedAt;
+  final int downloaded;
+  final int deleted;
+
+  /// The first error of the last sync, kept so it's copyable for a bug report
+  /// and survives a reopen; null once cleared or on a clean sync.
+  final String? error;
+
+  const SyncOutcome({
+    required this.syncedAt,
+    this.downloaded = 0,
+    this.deleted = 0,
+    this.error,
+  });
+
+  /// Same outcome with the error dropped (the "Clear" action) — keeps the
+  /// timestamp and counts.
+  SyncOutcome withoutError() => SyncOutcome(
+        syncedAt: syncedAt,
+        downloaded: downloaded,
+        deleted: deleted,
+      );
+
+  factory SyncOutcome.fromJson(Map<String, dynamic> json) => SyncOutcome(
+        syncedAt: DateTime.parse(json['synced_at'] as String),
+        downloaded: json['downloaded'] as int? ?? 0,
+        deleted: json['deleted'] as int? ?? 0,
+        error: json['error'] as String?,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'synced_at': syncedAt.toIso8601String(),
+        'downloaded': downloaded,
+        'deleted': deleted,
+        if (error != null) 'error': error,
+      };
+}
+
 class DeviceInfo {
   final String name;
   final String deviceType;
