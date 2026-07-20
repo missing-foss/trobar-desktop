@@ -229,4 +229,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorCopied => 'Error copied to clipboard';
+
+  @override
+  String get settingsAutoSyncOnDetect =>
+      'Sync automatically when a card is inserted';
+
+  @override
+  String get settingsAutoSyncOnDetectHelp =>
+      'While this app is open and a paired card appears, sync it without asking.';
+
+  @override
+  String get settingsAutoSyncInterval => 'Auto-sync while a card is open';
+
+  @override
+  String get autoSyncOff => 'Off';
+
+  @override
+  String autoSyncEveryMinutes(int minutes) {
+    return 'Every $minutes min';
+  }
+
+  @override
+  String autoSyncEveryHours(int hours) {
+    return 'Every $hours h';
+  }
 }

@@ -162,5 +162,25 @@
   },
   "copyError": "Copy error",
   "clearError": "Clear",
-  "errorCopied": "Error copied to clipboard"
+  "errorCopied": "Error copied to clipboard",
+  "settingsAutoSyncOnDetect": "Sync automatically when a card is inserted",
+  "settingsAutoSyncOnDetectHelp": "While this app is open and a paired card appears, sync it without asking.",
+  "settingsAutoSyncInterval": "Auto-sync while a card is open",
+  "autoSyncOff": "Off",
+  "autoSyncEveryMinutes": "Every {minutes} min",
+  "@autoSyncEveryMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "autoSyncEveryHours": "Every {hours} h",
+  "@autoSyncEveryHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  }
 }

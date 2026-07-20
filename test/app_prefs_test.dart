@@ -25,18 +25,34 @@ void main() {
     final prefs = await AppPrefs.load(file: prefsFile());
     expect(prefs.language, 'system');
     expect(prefs.missingPolicy, 'ask');
+    // #23: auto-sync is opt-in / off by default.
+    expect(prefs.autoSyncOnDetect, isFalse);
+    expect(prefs.autoSyncIntervalMinutes, 0);
   });
 
   test('save then load round-trips the values', () async {
     final prefs = await AppPrefs.load(file: prefsFile());
     prefs
       ..language = 'fr'
-      ..missingPolicy = 'redownload';
+      ..missingPolicy = 'redownload'
+      ..autoSyncOnDetect = true
+      ..autoSyncIntervalMinutes = 60;
     await prefs.save();
 
     final reloaded = await AppPrefs.load(file: prefsFile());
     expect(reloaded.language, 'fr');
     expect(reloaded.missingPolicy, 'redownload');
+    expect(reloaded.autoSyncOnDetect, isTrue);
+    expect(reloaded.autoSyncIntervalMinutes, 60);
+  });
+
+  test('an out-of-range auto-sync interval falls back to off (#23)', () async {
+    await prefsFile().writeAsString(
+        '{"auto_sync_on_detect":"yes","auto_sync_interval_minutes":7}');
+    final prefs = await AppPrefs.load(file: prefsFile());
+    // non-bool -> false; 7 isn't an allowed step -> 0.
+    expect(prefs.autoSyncOnDetect, isFalse);
+    expect(prefs.autoSyncIntervalMinutes, 0);
   });
 
   test('save creates the parent directory', () async {

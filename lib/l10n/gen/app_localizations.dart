@@ -475,6 +475,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error copied to clipboard'**
   String get errorCopied;
+
+  /// No description provided for @settingsAutoSyncOnDetect.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync automatically when a card is inserted'**
+  String get settingsAutoSyncOnDetect;
+
+  /// No description provided for @settingsAutoSyncOnDetectHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'While this app is open and a paired card appears, sync it without asking.'**
+  String get settingsAutoSyncOnDetectHelp;
+
+  /// No description provided for @settingsAutoSyncInterval.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-sync while a card is open'**
+  String get settingsAutoSyncInterval;
+
+  /// No description provided for @autoSyncOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get autoSyncOff;
+
+  /// No description provided for @autoSyncEveryMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Every {minutes} min'**
+  String autoSyncEveryMinutes(int minutes);
+
+  /// No description provided for @autoSyncEveryHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Every {hours} h'**
+  String autoSyncEveryHours(int hours);
 }
 
 class _AppLocalizationsDelegate

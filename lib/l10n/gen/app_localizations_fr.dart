@@ -232,4 +232,29 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get errorCopied => 'Erreur copiée dans le presse-papiers';
+
+  @override
+  String get settingsAutoSyncOnDetect =>
+      'Synchroniser automatiquement à l\'insertion d\'une carte';
+
+  @override
+  String get settingsAutoSyncOnDetectHelp =>
+      'Quand l\'application est ouverte et qu\'une carte associée apparaît, la synchroniser sans demander.';
+
+  @override
+  String get settingsAutoSyncInterval =>
+      'Synchro auto quand une carte est ouverte';
+
+  @override
+  String get autoSyncOff => 'Désactivé';
+
+  @override
+  String autoSyncEveryMinutes(int minutes) {
+    return 'Toutes les $minutes min';
+  }
+
+  @override
+  String autoSyncEveryHours(int hours) {
+    return 'Toutes les $hours h';
+  }
 }

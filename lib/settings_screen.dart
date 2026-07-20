@@ -43,8 +43,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       TextEditingController(text: _bytesToGbField(widget.info?.maxSizeBytes));
   late String _language = AppPrefs.instance.language;
   late String _missing = AppPrefs.instance.missingPolicy;
+  late bool _autoSyncOnDetect = AppPrefs.instance.autoSyncOnDetect;
+  late int _autoSyncInterval = AppPrefs.instance.autoSyncIntervalMinutes;
   bool _saving = false;
   String? _error;
+
+  String _intervalLabel(AppLocalizations l, int minutes) {
+    if (minutes == 0) return l.autoSyncOff;
+    if (minutes % 60 == 0) return l.autoSyncEveryHours(minutes ~/ 60);
+    return l.autoSyncEveryMinutes(minutes);
+  }
 
   static String _bytesToGbField(int? bytes) {
     if (bytes == null) return '';
@@ -95,7 +103,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // 3. App-wide prefs — language + missing-file policy.
       AppPrefs.instance
         ..language = _language
-        ..missingPolicy = _missing;
+        ..missingPolicy = _missing
+        ..autoSyncOnDetect = _autoSyncOnDetect
+        ..autoSyncIntervalMinutes = _autoSyncInterval;
       await AppPrefs.instance.save();
       localeNotifier.value = _language == 'system' ? null : Locale(_language);
 
@@ -180,6 +190,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: Text(l.settingsMissingExclude)),
                     ],
                     onChanged: (v) => setState(() => _missing = v ?? 'ask'),
+                  ),
+                  const SizedBox(height: 8),
+                  // Auto-sync (#23): opt-in, off by default. Desktop has no
+                  // background daemon, so both only act while the app is open.
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(l.settingsAutoSyncOnDetect),
+                    subtitle: Text(l.settingsAutoSyncOnDetectHelp),
+                    value: _autoSyncOnDetect,
+                    onChanged: (v) => setState(() => _autoSyncOnDetect = v),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int>(
+                    initialValue: _autoSyncInterval,
+                    decoration: InputDecoration(
+                        labelText: l.settingsAutoSyncInterval),
+                    items: [
+                      for (final m in autoSyncIntervalValues)
+                        DropdownMenuItem(
+                            value: m, child: Text(_intervalLabel(l, m))),
+                    ],
+                    onChanged: (v) =>
+                        setState(() => _autoSyncInterval = v ?? 0),
                   ),
                   const SizedBox(height: 20),
                   // Storage limit (GB)

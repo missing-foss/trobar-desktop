@@ -5,6 +5,7 @@
 // artist images. (Transcoding to MP3 is done server-side; the client just
 // downloads whatever bytes the server serves.)
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -109,11 +110,24 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<(Directory, DeviceConfig)> _cards = [];
   bool _scanning = true;
+  // #23: card roots already seen, so auto-sync fires only for a card that
+  // *appears* while the app is open (an insert), not ones present at launch.
+  Set<String> _seenRoots = {};
+  Timer? _poll;
 
   @override
   void initState() {
     super.initState();
     _rescan();
+    // Poll for inserted/removed cards so the list stays live and, when
+    // auto-sync-on-detect is on, a freshly-inserted card syncs itself (#23).
+    _poll = Timer.periodic(const Duration(seconds: 8), (_) => _autoScan());
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    super.dispose();
   }
 
   Future<void> _rescan() async {
@@ -122,8 +136,32 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
     setState(() {
       _cards = cards;
+      _seenRoots = {for (final c in cards) c.$1.path};
       _scanning = false;
     });
+  }
+
+  /// Background poll (#23): refresh the card list and, if a *new* card appeared
+  /// and auto-sync-on-detect is on, open + sync it. No-op while a card/settings
+  /// screen is on top (so it never scans or navigates under another route).
+  Future<void> _autoScan() async {
+    if (!mounted) return;
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) return;
+    final cards = await discoverCards();
+    if (!mounted) return;
+    final roots = {for (final c in cards) c.$1.path};
+    final appeared = roots.difference(_seenRoots);
+    setState(() {
+      _cards = cards;
+      _seenRoots = roots;
+      _scanning = false;
+    });
+    if (AppPrefs.instance.autoSyncOnDetect && appeared.isNotEmpty) {
+      final root = appeared.first;
+      final card = cards.firstWhere((c) => c.$1.path == root);
+      _openCard(card.$1, card.$2, autoSync: true);
+    }
   }
 
   Future<void> _openFolder() async {
@@ -141,10 +179,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _openCard(Directory root, DeviceConfig config) {
+  void _openCard(Directory root, DeviceConfig config, {bool autoSync = false}) {
     Navigator.of(context)
         .push(MaterialPageRoute(
-            builder: (_) => CardScreen(root: root, config: config)))
+            builder: (_) =>
+                CardScreen(root: root, config: config, autoSync: autoSync)))
         .then((_) => _rescan());
   }
 
@@ -332,7 +371,17 @@ class _PairScreenState extends State<PairScreen> {
 class CardScreen extends StatefulWidget {
   final Directory root;
   final DeviceConfig config;
-  const CardScreen({super.key, required this.root, required this.config});
+
+  /// #23: sync once, unprompted, right after opening (set when the card was
+  /// auto-opened on detection).
+  final bool autoSync;
+
+  const CardScreen({
+    super.key,
+    required this.root,
+    required this.config,
+    this.autoSync = false,
+  });
 
   @override
   State<CardScreen> createState() => _CardScreenState();
@@ -353,15 +402,35 @@ class _CardScreenState extends State<CardScreen> {
   // Transient, in-session only: a failure to reach the server *now* (e.g. the
   // initial device-info load). Distinct from a persisted sync error.
   String? _error;
+  // #23: periodic re-sync while this card is open (null = interval off).
+  Timer? _interval;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _load().then((_) {
+      // Auto-sync on open (a detected-card insert), once the first load settled.
+      if (widget.autoSync && mounted && !_syncing) _sync();
+    });
+    _restartInterval();
+  }
+
+  /// (Re)start the while-open interval timer from the current pref (#23) —
+  /// called on open and after Settings, so a changed interval takes effect
+  /// without reopening the card.
+  void _restartInterval() {
+    _interval?.cancel();
+    final mins = AppPrefs.instance.autoSyncIntervalMinutes;
+    _interval = mins > 0
+        ? Timer.periodic(Duration(minutes: mins), (_) {
+            if (mounted && !_syncing) _sync();
+          })
+        : null;
   }
 
   @override
   void dispose() {
+    _interval?.cancel();
     _api.close();
     super.dispose();
   }
@@ -558,6 +627,7 @@ class _CardScreenState extends State<CardScreen> {
         _api = ApiClient(_config);
       });
     }
+    _restartInterval(); // #23: the auto-sync interval may have changed
     _load(); // pick up a storage-limit change (re-fetches device info)
   }
 
