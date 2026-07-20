@@ -12,6 +12,22 @@ flutter analyze && echo ok || fail=1
 step "flutter test"
 flutter test && echo ok || fail=1
 
+step "translations (FR ARB complete, #32)"
+# gen-l10n validates placeholder/ICU parity (it errors on a mismatch) and writes
+# every untranslated key to the untranslated-messages-file set in l10n.yaml. The
+# file is "{}" when complete and "{\"fr\": [...]}" when a key lacks its FR value,
+# so a "[" means a gap — a new string then fails the build instead of shipping an
+# English fallback in French.
+if flutter gen-l10n; then
+  if grep -q "\[" lib/l10n/untranslated.txt 2>/dev/null; then
+    echo "UNTRANSLATED FR messages:"; cat lib/l10n/untranslated.txt; fail=1
+  else
+    echo ok
+  fi
+else
+  echo "flutter gen-l10n failed (placeholder/ICU mismatch?)"; fail=1
+fi
+
 step "no hardcoded UI strings (must go through AppLocalizations) (#13)"
 # A Text() built from a string literal bypasses l10n and renders in English
 # regardless of locale (the sync dialogs did this). Native language names in
