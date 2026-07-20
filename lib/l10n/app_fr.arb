@@ -134,5 +134,7 @@
         "type": "int"
       }
     }
-  }
+  },
+  "notifySyncComplete": "Synchronisation terminée",
+  "notifySyncFailed": "Échec de la synchronisation"
 }

@@ -13,6 +13,8 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:local_notifier/local_notifier.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'l10n/gen/app_localizations.dart';
 
@@ -22,6 +24,7 @@ import 'app_prefs.dart';
 import 'card_store.dart';
 import 'locale_notifier.dart';
 import 'models.dart';
+import 'notify.dart';
 import 'settings_screen.dart';
 import 'sync_engine.dart';
 
@@ -33,6 +36,9 @@ const brandCanvas = Color(0xFF100E08);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // #24: window focus queries + local notifications. Local only, no telemetry.
+  await windowManager.ensureInitialized();
+  await localNotifier.setup(appName: 'Trobar');
   // Load the app-wide language override before the first frame so the UI
   // opens in the chosen language (#17).
   final prefs = await AppPrefs.load();
@@ -454,6 +460,9 @@ class _CardScreenState extends State<CardScreen> {
   }
 
   Future<void> _sync() async {
+    // Captured before the awaits so it's safe to use in the finally for the
+    // completion notification (#24), regardless of later widget lifecycle.
+    final l = AppLocalizations.of(context);
     setState(() {
       _syncing = true;
       _error = null;
@@ -528,6 +537,15 @@ class _CardScreenState extends State<CardScreen> {
           // a read-only/removed card mustn't crash the sync UI
         }
         if (mounted) setState(() => _outcome = outcome);
+        // #24: signal completion via an OS notification when the window isn't
+        // focused — but only when something actually happened, so an unattended
+        // interval sync (#23) that finds nothing doesn't ping every time.
+        if (outcome.error != null) {
+          notifyIfUnfocused(l.notifySyncFailed, outcome.error!);
+        } else if (outcome.downloaded > 0 || outcome.deleted > 0) {
+          notifyIfUnfocused(l.notifySyncComplete,
+              l.syncSummary(outcome.downloaded, outcome.deleted));
+        }
       }
       if (mounted) {
         setState(() {

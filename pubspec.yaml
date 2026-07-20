@@ -22,6 +22,10 @@ dependencies:
   path: ^1.9.0
   url_launcher: ^6.3.0
   package_info_plus: ^10.2.1
+  # #24: native completion notification when the window is unfocused. Local
+  # only — nothing phoned home (the app's no-telemetry stance).
+  local_notifier: ^0.1.6
+  window_manager: ^0.4.3
 
 dev_dependencies:
   flutter_test:

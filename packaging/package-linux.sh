@@ -21,6 +21,15 @@ HERE="$(cd "$(dirname "$0")/.." && pwd)"
 BUNDLE="$HERE/build/linux/x64/release/bundle"
 OUT="trobar-desktop-$VERSION-linux-x64"
 
+# #24: the local_notifier plugin links libnotify at build time. Fail early with
+# a clear message rather than a deep CMake error if the -dev headers are absent.
+if ! pkg-config --exists libnotify 2>/dev/null; then
+  echo "error: libnotify-dev is required to build (local_notifier, #24)." >&2
+  echo "  Debian/Ubuntu: sudo apt install libnotify-dev" >&2
+  echo "  Fedora:        sudo dnf install libnotify-devel" >&2
+  exit 1
+fi
+
 (cd "$HERE" && flutter build linux --release)
 
 STAGE="$(mktemp -d)"

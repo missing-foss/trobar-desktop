@@ -253,4 +253,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String autoSyncEveryHours(int hours) {
     return 'Every $hours h';
   }
+
+  @override
+  String get notifySyncComplete => 'Sync complete';
+
+  @override
+  String get notifySyncFailed => 'Sync failed';
 }

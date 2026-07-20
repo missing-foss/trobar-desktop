@@ -511,6 +511,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Every {hours} h'**
   String autoSyncEveryHours(int hours);
+
+  /// No description provided for @notifySyncComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync complete'**
+  String get notifySyncComplete;
+
+  /// No description provided for @notifySyncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed'**
+  String get notifySyncFailed;
 }
 
 class _AppLocalizationsDelegate
