@@ -6,6 +6,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Trobar desktop
 
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/missing-foss/trobar-desktop/badge)](https://securityscorecards.dev/viewer/?uri=github.com/missing-foss/trobar-desktop)
+
 Flutter app (Linux / macOS / Windows) that syncs
 [Trobar](https://github.com/missing-foss/trobar-server) library selections
 onto SD cards, USB drives, and local folders — the client for network-less
