@@ -31,3 +31,23 @@ flutter:
     - assets/logo_bard.png
     # About screen: the app's own license, shown offline in-app.
     - LICENSE
+  # Brand fonts (#22), bundled OFL .ttf to match Android/web — Space Grotesk is
+  # the UI/body font (applied as the theme's fontFamily); Fredoka is reserved
+  # for the "Trobar" wordmark. Attribution in THIRD_PARTY_NOTICES.md.
+  fonts:
+    - family: SpaceGrotesk
+      fonts:
+        - asset: assets/fonts/space_grotesk_regular.ttf
+          weight: 400
+        - asset: assets/fonts/space_grotesk_medium.ttf
+          weight: 500
+        - asset: assets/fonts/space_grotesk_semibold.ttf
+          weight: 600
+        - asset: assets/fonts/space_grotesk_bold.ttf
+          weight: 700
+    - family: Fredoka
+      fonts:
+        - asset: assets/fonts/fredoka_semibold.ttf
+          weight: 600
+        - asset: assets/fonts/fredoka_bold.ttf
+          weight: 700

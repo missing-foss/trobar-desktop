@@ -124,6 +124,7 @@ class _AboutScreenState extends State<AboutScreen> {
                           .textTheme
                           .headlineSmall
                           ?.copyWith(
+                              fontFamily: 'Fredoka', // #22: wordmark font
                               color: brandInk(context),
                               fontWeight: FontWeight.w600)),
                   TextSpan(
@@ -132,6 +133,7 @@ class _AboutScreenState extends State<AboutScreen> {
                           .textTheme
                           .headlineSmall
                           ?.copyWith(
+                              fontFamily: 'Fredoka', // #22: wordmark font
                               color: brandRose, fontWeight: FontWeight.w600)),
                 ])),
               ),
