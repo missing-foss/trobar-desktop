@@ -53,7 +53,10 @@ class SyncOutcome {
       );
 
   Map<String, dynamic> toJson() => {
-        'synced_at': syncedAt.toIso8601String(),
+        // #39: store UTC (ISO-8601 with 'Z') — the card is read on other
+        // machines in other timezones, so a local, offset-less wall-clock would
+        // be misread. _fmtSyncTime converts back to local for display.
+        'synced_at': syncedAt.toUtc().toIso8601String(),
         'downloaded': downloaded,
         'deleted': deleted,
         if (error != null) 'error': error,
