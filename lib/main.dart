@@ -164,6 +164,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _scanning = false;
     });
     if (AppPrefs.instance.autoSyncOnDetect && appeared.isNotEmpty) {
+      // #42: if several cards appear in the same tick we auto-open+sync only
+      // the first — you can only push one CardScreen at a time. Any others are
+      // now in `_seenRoots`, so they stay in the list for manual open rather
+      // than auto-syncing (an intentional limitation, not a queue).
       final root = appeared.first;
       final card = cards.firstWhere((c) => c.$1.path == root);
       _openCard(card.$1, card.$2, autoSync: true);
@@ -416,7 +420,7 @@ class _CardScreenState extends State<CardScreen> {
     super.initState();
     _load().then((_) {
       // Auto-sync on open (a detected-card insert), once the first load settled.
-      if (widget.autoSync && mounted && !_syncing) _sync();
+      if (widget.autoSync && mounted && !_syncing) _sync(unattended: true);
     });
     _restartInterval();
   }
@@ -429,7 +433,7 @@ class _CardScreenState extends State<CardScreen> {
     final mins = AppPrefs.instance.autoSyncIntervalMinutes;
     _interval = mins > 0
         ? Timer.periodic(Duration(minutes: mins), (_) {
-            if (mounted && !_syncing) _sync();
+            if (mounted && !_syncing) _sync(unattended: true);
           })
         : null;
   }
@@ -459,7 +463,9 @@ class _CardScreenState extends State<CardScreen> {
     }
   }
 
-  Future<void> _sync() async {
+  /// [unattended] = triggered by auto-sync (on-detect / interval, #23) rather
+  /// than the Sync button, so it must not block on a prompt (#43).
+  Future<void> _sync({bool unattended = false}) async {
     // Captured before the awaits so it's safe to use in the finally for the
     // completion notification (#24), regardless of later widget lifecycle.
     final l = AppLocalizations.of(context);
@@ -493,7 +499,13 @@ class _CardScreenState extends State<CardScreen> {
             ? true
             : policy == 'exclude'
                 ? false
-                : await _askMissing(missing.length);
+                // #43: an unattended auto-sync must stay hands-off — never pop
+                // the modal. With policy 'ask' it defaults to the safe,
+                // non-destructive choice (exclude: leave the missing tracks
+                // deleted, don't re-download). A manual sync still prompts.
+                : unattended
+                    ? false
+                    : await _askMissing(missing.length);
         if (redownload == null) {
           cancelled = true;
           return; // cancelled — record nothing
