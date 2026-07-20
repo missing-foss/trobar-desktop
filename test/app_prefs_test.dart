@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2026 missing-foss
 // SPDX-License-Identifier: GPL-3.0-or-later
 // #17: the hand-rolled app-wide prefs store — defaults, round-trip, and
 // robustness against a corrupt / out-of-range file.

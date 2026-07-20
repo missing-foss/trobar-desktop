@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2026 missing-foss
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Engine-level tests against a fake HTTP layer and a temp-dir "card" —
 // covers the sync contract: atomic writes, real-bytes ack, delete + empty-dir

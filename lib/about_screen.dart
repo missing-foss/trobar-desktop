@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2026 missing-foss
 // SPDX-License-Identifier: GPL-3.0-or-later
 // About screen: version, links, licenses, donate. The update
 // check is user-initiated only — one GitHub API call per button press,

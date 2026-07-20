@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2026 missing-foss
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Thin client for the Trobar device API (Bearer-token half of the server,
 // same endpoints the Android app uses).

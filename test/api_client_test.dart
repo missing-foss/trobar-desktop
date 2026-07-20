@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2026 missing-foss
 // SPDX-License-Identifier: GPL-3.0-or-later
 // #18: the new updateLimit() — PATCH /api/device/limit, byte count or JSON
 // null (no limit), Bearer-authed, non-200 surfaced.

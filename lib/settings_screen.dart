@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2026 missing-foss
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Settings screen (#17/#18) — parity with the Android SettingsScreen, scoped
 // to what desktop can reach: the paired card's server URL, an app-wide

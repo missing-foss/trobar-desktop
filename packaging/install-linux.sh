@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 missing-foss
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # XDG user-install for Trobar — no root needed. Run from the extracted tarball:
 #
 #   ./install.sh

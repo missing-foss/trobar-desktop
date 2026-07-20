@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 missing-foss
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Package the Linux x64 release tarball: the Flutter bundle, the license files,
 # and XDG desktop integration (#21 — menu launcher + hicolor icon + install.sh,
 # since macOS/Windows ship icons in their runners but Linux had none).

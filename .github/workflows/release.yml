@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 missing-foss
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Desktop release: builds Windows and macOS artifacts and publishes them to
 # the GitHub Release for a desktop-vX.Y.Z tag, alongside the Linux tarball
 # (which is still built and uploaded by hand — see packaging/package-linux.sh).
