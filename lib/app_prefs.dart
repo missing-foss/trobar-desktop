@@ -19,13 +19,28 @@ const languageValues = ['system', 'en', 'fr'];
 /// so repeat/unattended syncs don't nag.
 const missingPolicyValues = ['ask', 'redownload', 'exclude'];
 
+/// In-app auto-sync interval while a card is open, in minutes (#23). 0 = off.
+/// Desktop has no background daemon, so this only ticks while the app is open.
+const autoSyncIntervalValues = [0, 15, 30, 60, 360];
+
 class AppPrefs {
   String language;
   String missingPolicy;
+
+  /// #23: when the app is open and a paired card appears, sync it unprompted.
+  bool autoSyncOnDetect;
+
+  /// #23: re-sync every N minutes while a card is open (0 = off).
+  int autoSyncIntervalMinutes;
+
   final File _file;
 
-  AppPrefs._(this._file,
-      {required this.language, required this.missingPolicy});
+  AppPrefs._(this._file, {
+    required this.language,
+    required this.missingPolicy,
+    required this.autoSyncOnDetect,
+    required this.autoSyncIntervalMinutes,
+  });
 
   static AppPrefs? _instance;
 
@@ -38,29 +53,45 @@ class AppPrefs {
     final f = file ?? await _defaultFile();
     var language = 'system';
     var missingPolicy = 'ask';
+    var autoSyncOnDetect = false;
+    var autoSyncIntervalMinutes = 0;
     try {
       if (await f.exists()) {
         final j = jsonDecode(await f.readAsString()) as Map<String, dynamic>;
         language = _oneOf(j['language'], languageValues, language);
         missingPolicy =
             _oneOf(j['missing_policy'], missingPolicyValues, missingPolicy);
+        autoSyncOnDetect = j['auto_sync_on_detect'] == true;
+        autoSyncIntervalMinutes = _oneOfInt(
+            j['auto_sync_interval_minutes'], autoSyncIntervalValues, 0);
       }
     } catch (_) {
       // corrupt / unreadable — use defaults
     }
-    return _instance =
-        AppPrefs._(f, language: language, missingPolicy: missingPolicy);
+    return _instance = AppPrefs._(f,
+        language: language,
+        missingPolicy: missingPolicy,
+        autoSyncOnDetect: autoSyncOnDetect,
+        autoSyncIntervalMinutes: autoSyncIntervalMinutes);
   }
 
   Future<void> save() async {
     await _file.parent.create(recursive: true);
     await _file.writeAsString(
-        '${jsonEncode({'language': language, 'missing_policy': missingPolicy})}\n',
+        '${jsonEncode({
+          'language': language,
+          'missing_policy': missingPolicy,
+          'auto_sync_on_detect': autoSyncOnDetect,
+          'auto_sync_interval_minutes': autoSyncIntervalMinutes,
+        })}\n',
         flush: true);
   }
 
   static String _oneOf(Object? v, List<String> allowed, String fallback) =>
       (v is String && allowed.contains(v)) ? v : fallback;
+
+  static int _oneOfInt(Object? v, List<int> allowed, int fallback) =>
+      (v is int && allowed.contains(v)) ? v : fallback;
 
   static Future<File> _defaultFile() async =>
       File(p.join(_configDir().path, 'trobar-desktop', 'prefs.json'));

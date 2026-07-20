@@ -114,5 +114,25 @@
   },
   "copyError": "Copier l'erreur",
   "clearError": "Effacer",
-  "errorCopied": "Erreur copiée dans le presse-papiers"
+  "errorCopied": "Erreur copiée dans le presse-papiers",
+  "settingsAutoSyncOnDetect": "Synchroniser automatiquement à l'insertion d'une carte",
+  "settingsAutoSyncOnDetectHelp": "Quand l'application est ouverte et qu'une carte associée apparaît, la synchroniser sans demander.",
+  "settingsAutoSyncInterval": "Synchro auto quand une carte est ouverte",
+  "autoSyncOff": "Désactivé",
+  "autoSyncEveryMinutes": "Toutes les {minutes} min",
+  "@autoSyncEveryMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "autoSyncEveryHours": "Toutes les {hours} h",
+  "@autoSyncEveryHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  }
 }
