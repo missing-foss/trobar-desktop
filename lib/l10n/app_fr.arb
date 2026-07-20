@@ -103,5 +103,16 @@
         "type": "String"
       }
     }
-  }
+  },
+  "lastSync": "Dernière synchro : {when}",
+  "@lastSync": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "copyError": "Copier l'erreur",
+  "clearError": "Effacer",
+  "errorCopied": "Erreur copiée dans le presse-papiers"
 }

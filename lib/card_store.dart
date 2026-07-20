@@ -14,9 +14,34 @@ import 'models.dart';
 
 const configDirName = '.trobar';
 const configFileName = 'device.json';
+const syncStateFileName = 'last_sync.json';
 
 File configFileFor(Directory root) =>
     File(p.join(root.path, configDirName, configFileName));
+
+File syncStateFileFor(Directory root) =>
+    File(p.join(root.path, configDirName, syncStateFileName));
+
+/// The last sync's outcome, persisted alongside the pairing config so it
+/// travels with the card and shows on reopen (#20). Missing/corrupt → null.
+Future<SyncOutcome?> readSyncOutcome(Directory root) async {
+  final f = syncStateFileFor(root);
+  try {
+    if (!await f.exists()) return null;
+    return SyncOutcome.fromJson(
+        jsonDecode(await f.readAsString()) as Map<String, dynamic>);
+  } on FormatException {
+    return null;
+  } on FileSystemException {
+    return null;
+  }
+}
+
+Future<void> writeSyncOutcome(Directory root, SyncOutcome outcome) async {
+  final f = syncStateFileFor(root);
+  await f.parent.create(recursive: true);
+  await f.writeAsString('${jsonEncode(outcome.toJson())}\n', flush: true);
+}
 
 Future<DeviceConfig?> readConfig(Directory root) async {
   final f = configFileFor(root);

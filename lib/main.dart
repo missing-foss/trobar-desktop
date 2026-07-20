@@ -10,6 +10,7 @@ import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'l10n/gen/app_localizations.dart';
@@ -347,7 +348,10 @@ class _CardScreenState extends State<CardScreen> {
   ({int free, int total})? _space;
   bool _syncing = false;
   SyncProgress? _progress;
-  SyncResult? _lastResult;
+  // Last sync's outcome, persisted on the card (#20) — survives reopen/offline.
+  SyncOutcome? _outcome;
+  // Transient, in-session only: a failure to reach the server *now* (e.g. the
+  // initial device-info load). Distinct from a persisted sync error.
   String? _error;
 
   @override
@@ -363,6 +367,10 @@ class _CardScreenState extends State<CardScreen> {
   }
 
   Future<void> _load() async {
+    // Card-local, no server — so the last-sync outcome shows even when the
+    // server is unreachable.
+    final outcome = await readSyncOutcome(widget.root);
+    if (mounted) setState(() => _outcome = outcome);
     try {
       final info = await _api.getInfo();
       final space = await volumeSpace(widget.root);
@@ -380,7 +388,6 @@ class _CardScreenState extends State<CardScreen> {
     setState(() {
       _syncing = true;
       _error = null;
-      _lastResult = null;
     });
     // Fresh device info per sync — the web UI can change the artist-image
     // setting while this screen is open.
@@ -392,6 +399,9 @@ class _CardScreenState extends State<CardScreen> {
     }
     final engine =
         SyncEngine(_api, widget.root, artistImages: _info?.artistImages);
+    SyncResult? result;
+    String? syncError;
+    var cancelled = false;
     try {
       var changes = await _api.getChanges();
 
@@ -407,8 +417,8 @@ class _CardScreenState extends State<CardScreen> {
                 ? false
                 : await _askMissing(missing.length);
         if (redownload == null) {
-          setState(() => _syncing = false);
-          return; // cancelled
+          cancelled = true;
+          return; // cancelled — record nothing
         }
         await _api.resolveMissing(
           redownload: redownload ? [for (final t in missing) t.trackId] : [],
@@ -417,13 +427,9 @@ class _CardScreenState extends State<CardScreen> {
         changes = await _api.getChanges();
       }
 
-      final result = await engine.run(changes,
+      result = await engine.run(changes,
           onProgress: (pr) => setState(() => _progress = pr));
-      if (!mounted) return;
-      setState(() => _lastResult = result);
-      if (result.firstError != null) {
-        setState(() => _error = result.firstError);
-      }
+      syncError = result.firstError;
 
       // leftovers no track claims (e.g. old-extension files
       // after a transcode-format change). Confirm-gated — the card may
@@ -436,8 +442,24 @@ class _CardScreenState extends State<CardScreen> {
         }
       }
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      syncError = '$e';
     } finally {
+      // Persist the outcome onto the card (#20) so it survives reopen — skipped
+      // if the user cancelled before anything ran.
+      if (!cancelled) {
+        final outcome = SyncOutcome(
+          syncedAt: DateTime.now(),
+          downloaded: result?.downloadedCount ?? 0,
+          deleted: result?.deletedCount ?? 0,
+          error: syncError,
+        );
+        try {
+          await writeSyncOutcome(widget.root, outcome);
+        } catch (_) {
+          // a read-only/removed card mustn't crash the sync UI
+        }
+        if (mounted) setState(() => _outcome = outcome);
+      }
       if (mounted) {
         setState(() {
           _syncing = false;
@@ -446,6 +468,32 @@ class _CardScreenState extends State<CardScreen> {
         _load();
       }
     }
+  }
+
+  String _fmtSyncTime(DateTime dt) {
+    final l = dt.toLocal();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${two(l.day)}/${two(l.month)} ${two(l.hour)}:${two(l.minute)}';
+  }
+
+  Future<void> _copyError(String error) async {
+    await Clipboard.setData(ClipboardData(text: error));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(AppLocalizations.of(context).errorCopied)));
+    }
+  }
+
+  Future<void> _clearError() async {
+    final outcome = _outcome;
+    if (outcome == null) return;
+    final cleared = outcome.withoutError();
+    try {
+      await writeSyncOutcome(widget.root, cleared);
+    } catch (_) {
+      // best-effort; still drop it from the view
+    }
+    if (mounted) setState(() => _outcome = cleared);
   }
 
   Future<bool?> _askOrphans(List<String> orphans) {
@@ -516,7 +564,8 @@ class _CardScreenState extends State<CardScreen> {
   @override
   Widget build(BuildContext context) {
     final space = _space;
-    final result = _lastResult;
+    final l = AppLocalizations.of(context);
+    final outcome = _outcome;
     return Scaffold(
       appBar: AppBar(
         title: Text(_info?.name ?? widget.root.path),
@@ -576,11 +625,39 @@ class _CardScreenState extends State<CardScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelSmall),
-                if (result != null && !_syncing)
-                  Text(
-                      AppLocalizations.of(context).syncSummary(
-                          result.downloadedCount, result.deletedCount),
+                // Persisted last-sync outcome (#20): summary + timestamp, both
+                // read from the card so they survive reopening it.
+                if (outcome != null && !_syncing) ...[
+                  Text(l.syncSummary(outcome.downloaded, outcome.deleted),
                       textAlign: TextAlign.center),
+                  const SizedBox(height: 2),
+                  Text(l.lastSync(_fmtSyncTime(outcome.syncedAt)),
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: brandInk(context).withValues(alpha: .6))),
+                ],
+                // Persisted sync error — copyable (for a bug report) and
+                // clearable; survives reopen until cleared (#20).
+                if (outcome?.error != null && !_syncing)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(children: [
+                      Expanded(
+                          child: Text(outcome!.error!,
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error))),
+                      IconButton(
+                          tooltip: l.copyError,
+                          icon: const Icon(Icons.copy, size: 16),
+                          onPressed: () => _copyError(outcome.error!)),
+                      IconButton(
+                          tooltip: l.clearError,
+                          icon: const Icon(Icons.close, size: 16),
+                          onPressed: _clearError),
+                    ]),
+                  ),
+                // Transient connection error (this session only, e.g. couldn't
+                // reach the server to load device info) — not persisted.
                 if (_error != null)
                   Row(children: [
                     Expanded(
