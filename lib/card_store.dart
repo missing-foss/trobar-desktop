@@ -30,9 +30,11 @@ Future<SyncOutcome?> readSyncOutcome(Directory root) async {
     if (!await f.exists()) return null;
     return SyncOutcome.fromJson(
         jsonDecode(await f.readAsString()) as Map<String, dynamic>);
-  } on FormatException {
-    return null;
-  } on FileSystemException {
+  } catch (_) {
+    // #40: never throws. Beyond a missing/corrupt file (FormatException /
+    // FileSystemException), valid-JSON-but-wrong-shape (a non-object, or a
+    // field of the wrong type) throws a TypeError from the casts in fromJson —
+    // all of it means "no usable outcome", so fall back to null.
     return null;
   }
 }
