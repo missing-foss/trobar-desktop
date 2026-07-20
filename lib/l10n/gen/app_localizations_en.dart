@@ -259,4 +259,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notifySyncFailed => 'Sync failed';
+
+  @override
+  String get duelTitle => 'Duel the bard';
+
+  @override
+  String get duelYourTurn => 'Your turn';
+
+  @override
+  String get duelBardThinking => 'The bard is thinking…';
+
+  @override
+  String get duelYouWin => 'You beat the bard!';
+
+  @override
+  String get duelBardWins => 'The bard wins!';
+
+  @override
+  String get duelDraw => 'A draw!';
+
+  @override
+  String get duelPlayAgain => 'Play again';
+
+  @override
+  String get duelHint => 'Click a column or press 1–7 to drop';
 }

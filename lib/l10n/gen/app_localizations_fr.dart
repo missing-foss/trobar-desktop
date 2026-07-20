@@ -263,4 +263,28 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get notifySyncFailed => 'Échec de la synchronisation';
+
+  @override
+  String get duelTitle => 'Défiez le barde';
+
+  @override
+  String get duelYourTurn => 'À vous de jouer';
+
+  @override
+  String get duelBardThinking => 'Le barde réfléchit…';
+
+  @override
+  String get duelYouWin => 'Vous avez battu le barde !';
+
+  @override
+  String get duelBardWins => 'Le barde gagne !';
+
+  @override
+  String get duelDraw => 'Match nul !';
+
+  @override
+  String get duelPlayAgain => 'Rejouer';
+
+  @override
+  String get duelHint => 'Cliquez une colonne ou appuyez sur 1–7 pour jouer';
 }

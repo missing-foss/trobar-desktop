@@ -136,5 +136,13 @@
     }
   },
   "notifySyncComplete": "Synchronisation terminée",
-  "notifySyncFailed": "Échec de la synchronisation"
+  "notifySyncFailed": "Échec de la synchronisation",
+  "duelTitle": "Défiez le barde",
+  "duelYourTurn": "À vous de jouer",
+  "duelBardThinking": "Le barde réfléchit…",
+  "duelYouWin": "Vous avez battu le barde !",
+  "duelBardWins": "Le barde gagne !",
+  "duelDraw": "Match nul !",
+  "duelPlayAgain": "Rejouer",
+  "duelHint": "Cliquez une colonne ou appuyez sur 1–7 pour jouer"
 }
