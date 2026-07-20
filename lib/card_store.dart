@@ -58,6 +58,18 @@ Future<void> writeConfig(Directory root, DeviceConfig config) async {
   final f = configFileFor(root);
   await f.parent.create(recursive: true);
   await f.writeAsString('${jsonEncode(config.toJson())}\n', flush: true);
+  // #12: the token is plaintext by design (it must travel with the card), but
+  // tighten perms to 0600 where the filesystem supports them — cheap
+  // defense-in-depth so it isn't world-readable on a shared machine. A no-op on
+  // FAT/exFAT cards and on Windows; the portability model is unchanged. See
+  // SECURITY.md.
+  if (!Platform.isWindows) {
+    try {
+      await Process.run('chmod', ['600', f.path]);
+    } catch (_) {
+      // FAT/exFAT or a restricted environment — best-effort only.
+    }
+  }
 }
 
 /// Mount points where removable volumes show up, per platform. Purely a
