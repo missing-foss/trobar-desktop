@@ -18,6 +18,10 @@ DAPs that only ever see a card.
 Grab the build for your OS from Releases (tags `desktop-vX.Y.Z`):
 
 - **Linux x64**: tarball — untar and run `./trobar_desktop` (glibc 2.39+).
+  Requires **`libnotify`** at runtime (for completion notifications) —
+  Debian/Ubuntu `libnotify4`, Fedora `libnotify`. It's present on virtually
+  every desktop Linux (GNOME/KDE pull it in); on a minimal system without it
+  the app won't start, so install it first. `./install.sh` checks for it.
 - **Windows / macOS**: zip — unzip and run. No external dependencies
   (transcoding is handled by the server, so ffmpeg is no longer needed on
   any platform). These builds are **unsigned**: Windows SmartScreen will

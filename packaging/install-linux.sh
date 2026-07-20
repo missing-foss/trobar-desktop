@@ -14,6 +14,18 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+
+# #48: the binary links libnotify at load time (the local_notifier plugin), so
+# the app won't even start if it's missing — surface that now with a fix rather
+# than let the user hit a cryptic "cannot open shared object" at launch. Warn,
+# don't block: the install itself is fine; only running needs the lib.
+if ! ldconfig -p 2>/dev/null | grep -q 'libnotify\.so\.4'; then
+  echo "WARNING: libnotify.so.4 not found — Trobar won't start until you install it:" >&2
+  echo "  Debian/Ubuntu: sudo apt install libnotify4" >&2
+  echo "  Fedora:        sudo dnf install libnotify" >&2
+  echo >&2
+fi
+
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 APPDIR="$HOME/.local/lib/trobar-desktop"
 APPS_DIR="$DATA_HOME/applications"
