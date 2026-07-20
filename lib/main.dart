@@ -27,6 +27,7 @@ import 'models.dart';
 import 'notify.dart';
 import 'settings_screen.dart';
 import 'sync_engine.dart';
+import 'syncing_logo.dart';
 
 // Brand palette — mirrors android/.../Theme.kt and brand/README.md.
 const brandBurgundy = Color(0xFFA83250);
@@ -691,7 +692,14 @@ class _CardScreenState extends State<CardScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(child: Image.asset('assets/logo_bard.png', width: 96)),
+                Center(
+                  // #25: notes rise from the lute while syncing; tap to sync.
+                  child: SyncingLogo(
+                    syncing: _syncing,
+                    size: 96,
+                    onTap: _syncing ? null : _sync,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 Text(widget.root.path,
                     textAlign: TextAlign.center,

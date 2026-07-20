@@ -184,5 +184,13 @@
     }
   },
   "notifySyncComplete": "Sync complete",
-  "notifySyncFailed": "Sync failed"
+  "notifySyncFailed": "Sync failed",
+  "duelTitle": "Duel the bard",
+  "duelYourTurn": "Your turn",
+  "duelBardThinking": "The bard is thinking…",
+  "duelYouWin": "You beat the bard!",
+  "duelBardWins": "The bard wins!",
+  "duelDraw": "A draw!",
+  "duelPlayAgain": "Play again",
+  "duelHint": "Click a column or press 1–7 to drop"
 }

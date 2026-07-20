@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'connect_four_dialog.dart';
 import 'l10n/gen/app_localizations.dart';
 import 'main.dart' show brandInk, brandRose;
 
@@ -31,6 +32,15 @@ class _AboutScreenState extends State<AboutScreen> {
   bool _checking = false;
   String? _updateStatus;
   bool _updateAvailable = false;
+  int _logoTaps = 0; // #25: 5 taps on the bard reveals the easter egg.
+
+  void _onLogoTap() {
+    if (++_logoTaps >= 5) {
+      _logoTaps = 0;
+      showDialog<void>(
+          context: context, builder: (_) => const ConnectFourDialog());
+    }
+  }
 
   @override
   void initState() {
@@ -115,7 +125,11 @@ class _AboutScreenState extends State<AboutScreen> {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              Image.asset('assets/logo_bard.png', width: 110),
+              // #25: five taps on the bard opens the "duel the bard" easter egg.
+              GestureDetector(
+                onTap: _onLogoTap,
+                child: Image.asset('assets/logo_bard.png', width: 110),
+              ),
               const SizedBox(height: 8),
               Center(
                 child: Text.rich(TextSpan(children: [

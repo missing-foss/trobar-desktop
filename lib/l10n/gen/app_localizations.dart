@@ -523,6 +523,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sync failed'**
   String get notifySyncFailed;
+
+  /// No description provided for @duelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Duel the bard'**
+  String get duelTitle;
+
+  /// No description provided for @duelYourTurn.
+  ///
+  /// In en, this message translates to:
+  /// **'Your turn'**
+  String get duelYourTurn;
+
+  /// No description provided for @duelBardThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'The bard is thinking…'**
+  String get duelBardThinking;
+
+  /// No description provided for @duelYouWin.
+  ///
+  /// In en, this message translates to:
+  /// **'You beat the bard!'**
+  String get duelYouWin;
+
+  /// No description provided for @duelBardWins.
+  ///
+  /// In en, this message translates to:
+  /// **'The bard wins!'**
+  String get duelBardWins;
+
+  /// No description provided for @duelDraw.
+  ///
+  /// In en, this message translates to:
+  /// **'A draw!'**
+  String get duelDraw;
+
+  /// No description provided for @duelPlayAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Play again'**
+  String get duelPlayAgain;
+
+  /// No description provided for @duelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Click a column or press 1–7 to drop'**
+  String get duelHint;
 }
 
 class _AppLocalizationsDelegate
