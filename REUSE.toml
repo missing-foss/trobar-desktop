@@ -1,0 +1,64 @@
+# REUSE (https://reuse.software) licensing for files that can't carry an inline
+# SPDX header — binaries, generated code, JSON/no-comment formats, and the
+# Flutter-generated native platform scaffolding (#30). First-party source files
+# carry their own header instead.
+version = 1
+
+# --- Flutter-generated native platform scaffolding -------------------------
+# `flutter create` boilerplate under linux/ windows/ macos/. Attributed to its
+# upstream provenance (BSD-3-Clause, The Flutter Authors) rather than claimed as
+# first-party. The few brand-string edits in #21 (window titles, PRODUCT_NAME)
+# don't change these files' essential Flutter-template authorship. Brand icons
+# living in these trees are overridden below.
+[[annotations]]
+path = ["linux/**", "windows/**", "macos/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "The Flutter Authors"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+# --- Brand fonts (OFL-1.1, upstream authors) -------------------------------
+[[annotations]]
+path = ["assets/fonts/fredoka_semibold.ttf", "assets/fonts/fredoka_bold.ttf"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2016 The Fredoka Project Authors (https://github.com/hafontia/Fredoka-One)"
+SPDX-License-Identifier = "OFL-1.1"
+
+[[annotations]]
+path = [
+  "assets/fonts/space_grotesk_regular.ttf",
+  "assets/fonts/space_grotesk_medium.ttf",
+  "assets/fonts/space_grotesk_semibold.ttf",
+  "assets/fonts/space_grotesk_bold.ttf",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk)"
+SPDX-License-Identifier = "OFL-1.1"
+
+# --- First-party brand artwork / icons (override the Flutter-scaffolding
+# entry above for the icon files that live under macos/ and windows/) --------
+[[annotations]]
+path = [
+  "assets/logo_bard.png",
+  "macos/Runner/Assets.xcassets/AppIcon.appiconset/*.png",
+  "windows/runner/resources/app_icon.ico",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 missing-foss"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# --- First-party translations, generated output, locks, and misc config -----
+# ARB is JSON (no comments); l10n/gen is generated from those ARB files;
+# pubspec.lock / .metadata / .gitignore carry no header. All first-party.
+[[annotations]]
+path = [
+  "lib/l10n/app_en.arb",
+  "lib/l10n/app_fr.arb",
+  "lib/l10n/gen/**",
+  "pubspec.lock",
+  ".metadata",
+  "**/.gitignore",
+  "packaging/com.mfoss.trobar_desktop.desktop",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 missing-foss"
+SPDX-License-Identifier = "GPL-3.0-or-later"

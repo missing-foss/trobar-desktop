@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2026 missing-foss
 // SPDX-License-Identifier: GPL-3.0-or-later
 // App-wide (NOT per-card) preferences — the language override and the
 // missing-file sync policy (#17). Persisted as a small JSON file in the OS

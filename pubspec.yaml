@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 missing-foss
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 name: trobar_desktop
 description: "Trobar desktop sync client — syncs library selections onto SD cards and local folders for network-less DAPs."
 publish_to: 'none'

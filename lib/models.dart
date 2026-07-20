@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2026 missing-foss
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Wire models for the Trobar device API — deliberately mirrors the Android
 // client's field names so the server contract stays visibly identical.

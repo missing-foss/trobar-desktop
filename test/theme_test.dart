@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2026 missing-foss
 // SPDX-License-Identifier: GPL-3.0-or-later
 // #19: the app follows the OS light/dark theme. brandInk() must adapt so the
 // light theme gets readable dark text instead of the (invisible) brand cream.

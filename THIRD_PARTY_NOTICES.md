@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 missing-foss
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Third-Party Notices — Trobar desktop
 
 Trobar desktop's own code is `GPL-3.0-or-later` (see `LICENSE`). The

@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2026 missing-foss
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The sync loop — same shape as the Android SyncEngine: server-computed
 // diff in, per-track ack out, files written atomically (.part + rename) so

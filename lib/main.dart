@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2026 missing-foss
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Trobar desktop — syncs library selections onto SD cards / local folders
 // for network-less DAPs: pairing, server-driven diff sync, playlists,
