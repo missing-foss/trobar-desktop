@@ -8,5 +8,9 @@
 	<true/>
 	<key>com.apple.security.network.server</key>
 	<true/>
+	<!-- #52: outbound HTTP to the Trobar server. Inert on the current unsigned
+	     builds (sandbox not enforced), required once code-signed. -->
+	<key>com.apple.security.network.client</key>
+	<true/>
 </dict>
 </plist>

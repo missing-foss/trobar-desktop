@@ -34,11 +34,12 @@ real-device check.
   the window unfocused. If Apple has made it a no-op on the target OS, the fix
   is to move the plugin (or a fork) to `UNUserNotificationCenter` +
   `requestAuthorization`.
-- **Latent, unrelated to notifications:** the sandbox entitlements don't include
-  `com.apple.security.network.client`. The current builds are **unsigned**, so
-  the sandbox isn't enforced and outbound HTTP to the server works anyway — but
-  once the app is code-signed, add `com.apple.security.network.client` (to
-  `Debug`/`Release.entitlements`) or sync itself will be blocked.
+- **Network entitlement (#52):** `com.apple.security.network.client` is set in
+  both `Debug`/`Release.entitlements` — the App Sandbox requires it for the
+  outbound HTTP the sync uses. It's inert on the current **unsigned** builds
+  (the sandbox isn't enforced) but load-bearing once the app is code-signed.
+  **Still to confirm at signing time:** that a signed build actually completes a
+  sync (the sandbox can only be exercised once signed).
 
 ## Windows
 
