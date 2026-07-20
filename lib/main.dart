@@ -38,7 +38,12 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // #24: window focus queries + local notifications. Local only, no telemetry.
   await windowManager.ensureInitialized();
-  await localNotifier.setup(appName: 'Trobar');
+  // requireCreate (the default, made explicit): on Windows a toast needs an
+  // AppUserModelID, which local_notifier supplies by creating a Start-menu
+  // shortcut here — so toasts show from the packaged build. No-op on Linux;
+  // macOS delivers via NSUserNotification. See packaging/PLATFORM-NOTES.md (#49).
+  await localNotifier.setup(
+      appName: 'Trobar', shortcutPolicy: ShortcutPolicy.requireCreate);
   // Load the app-wide language override before the first frame so the UI
   // opens in the chosen language (#17).
   final prefs = await AppPrefs.load();
