@@ -59,6 +59,9 @@ ThemeData _brandTheme(Brightness brightness) {
     colorScheme: scheme,
     scaffoldBackgroundColor: scheme.surface,
     useMaterial3: true,
+    // #22: Space Grotesk is the UI/body font everywhere (matches Android/web);
+    // Fredoka is applied directly on the "Trobar" wordmark, not here.
+    fontFamily: 'SpaceGrotesk',
   );
 }
 
@@ -172,6 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           .textTheme
                           .headlineMedium
                           ?.copyWith(
+                              fontFamily: 'Fredoka', // #22: wordmark font
                               color: brandInk(context),
                               fontWeight: FontWeight.w600)),
                   TextSpan(
@@ -180,6 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           .textTheme
                           .headlineMedium
                           ?.copyWith(
+                              fontFamily: 'Fredoka', // #22: wordmark font
                               color: brandRose, fontWeight: FontWeight.w600)),
                 ])),
                 const SizedBox(height: 24),
