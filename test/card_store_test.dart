@@ -57,4 +57,11 @@ void main() {
     await syncStateFileFor(root).writeAsString('{ not json');
     expect(await readSyncOutcome(root), isNull);
   });
+
+  test('writeConfig tightens device.json perms to 0600 (#12)', () async {
+    await writeConfig(
+        root, const DeviceConfig(serverUrl: 'https://x', token: 't'));
+    final mode = configFileFor(root).statSync().mode & 0x1FF; // perm bits
+    expect(mode, 0x180); // 0600 — owner rw only
+  }, skip: Platform.isWindows ? 'no unix permissions on windows' : null);
 }

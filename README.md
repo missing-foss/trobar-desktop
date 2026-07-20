@@ -35,6 +35,9 @@ Build below.
   root, written once from the device config file the web app offers at
   device creation. Any machine running this app recognises the card and
   syncs it as the right device; the app itself stores nothing per-device.
+  The token is stored in plaintext so it can travel with the card — treat a
+  lost/stolen card as a credential to revoke (regenerate it under *Profile →
+  Devices* in the web app). See [SECURITY.md](SECURITY.md).
 - Sync is the same server-driven diff the Android app uses: the server
   computes what the card is missing (`/api/device/changes`), files are
   written atomically (`.part` + rename), each track is acked with the real
