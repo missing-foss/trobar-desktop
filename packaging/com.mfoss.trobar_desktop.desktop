@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Trobar
+GenericName=Music library sync
+Comment=Sync your library selections onto SD cards and local folders for network-less DAPs
+# install-linux.sh rewrites this to the absolute installed binary path.
+Exec=trobar_desktop
+Icon=com.mfoss.trobar_desktop
+Terminal=false
+Categories=AudioVideo;Audio;
+Keywords=music;sync;library;playlist;DAP;SD card;
+# Matches the GTK application-id / g_set_prgname in linux/runner, so the
+# compositor maps the running window to this launcher (icon in the dock).
+StartupWMClass=com.mfoss.trobar_desktop
