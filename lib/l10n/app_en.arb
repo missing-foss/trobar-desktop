@@ -182,5 +182,7 @@
         "type": "int"
       }
     }
-  }
+  },
+  "notifySyncComplete": "Sync complete",
+  "notifySyncFailed": "Sync failed"
 }
