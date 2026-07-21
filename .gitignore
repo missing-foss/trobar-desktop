@@ -50,3 +50,7 @@ lib/l10n/untranslated.txt
 # CI secret-scan downloads this binary into the tree; keep it out of git
 # and out of reuse lint (#30, mirrors trobar-server#181).
 /gitleaks
+
+# Release tarball built by packaging/package-linux.sh into the repo root;
+# a local build must not get committed or trip reuse lint.
+/trobar-desktop-*-linux-x64.tar.gz
