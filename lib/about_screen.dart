@@ -17,8 +17,7 @@ import 'l10n/gen/app_localizations.dart';
 import 'main.dart' show brandInk, brandRose;
 
 const _repoUrl = 'https://github.com/missing-foss/trobar-desktop';
-const _docsUrl =
-    'https://github.com/missing-foss/trobar-server/blob/main/docs/clients.md';
+const _docsUrl = 'https://missing-foss.github.io/trobar-server/';
 
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
