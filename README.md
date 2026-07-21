@@ -35,32 +35,19 @@ Build below.
 
 ## How it works
 
-- The pairing token lives **on the card**: `.trobar/device.json` at the card
-  root, written once from the device config file the web app offers at
-  device creation. Any machine running this app recognises the card and
-  syncs it as the right device; the app itself stores nothing per-device.
-  The token is stored in plaintext so it can travel with the card — treat a
-  lost/stolen card as a credential to revoke (regenerate it under *Profile →
-  Devices* in the web app). See [SECURITY.md](SECURITY.md).
-- Sync is the same server-driven diff the Android app uses: the server
-  computes what the card is missing (`/api/device/changes`), files are
-  written atomically (`.part` + rename), each track is acked with the real
-  byte count written, deletions prune now-empty album/artist folders, and
-  files the server expected but finds missing trigger the re-download /
-  leave-deleted choice.
-- **Transcoding is server-side**: if the device is set to an MP3 format in
-  the web app, the server converts lossless sources (FLAC/WAV/AIFF) to MP3
-  320/256/192/128 kbit/s on demand and streams the converted bytes — the
-  client just downloads whatever it's served (no local ffmpeg). Changing the
-  device's format re-syncs it under the new file names.
-- On-device names come from the server and are already FAT/exFAT/Windows
-  safe — the client never invents its own naming.
-- Playlist selections arrive as .m3u8 files at the card root (same name,
-  same order, local tracks only); files carrying the Trobar marker line are
-  refreshed/removed as assignments change, hand-made playlists are never
-  touched.
-- Artist pictures (if enabled for the device) are written as `artist.jpg`
-  into each artist folder.
+The pairing lives **on the card** (`.trobar/device.json`), so any machine
+running this app recognises it and syncs it as the right device — the app
+stores nothing per-device. Sync is the same server-driven diff the Android app
+uses (the server computes what the card is missing; files are written
+atomically and acked with the real byte count), and **transcoding is
+server-side** — the client just downloads whatever it's served. The full model
+(sync protocol, on-device naming, playlists, artist pictures) is in the
+[Desktop client guide](https://missing-foss.github.io/trobar-server/clients/desktop/).
+
+> **Security:** the pairing token is stored in plaintext on the card so it
+> travels with it — treat a lost or stolen card as a credential to revoke
+> (regenerate it under *Profile → Devices* in the web app). See
+> [SECURITY.md](SECURITY.md).
 
 ## Develop
 
