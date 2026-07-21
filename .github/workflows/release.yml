@@ -20,6 +20,10 @@ on:
     tags: ["desktop-v*"]
   workflow_dispatch:
     inputs:
+      tag:
+        description: "Existing desktop-vX.Y.Z tag to (re)build and upload assets to (built from the selected branch's code). Leave blank for a plain build check."
+        type: string
+        required: false
       publish:
         description: "Create/update the GitHub Release and upload assets (leave off to just confirm the builds succeed)"
         type: boolean
@@ -41,8 +45,9 @@ jobs:
       - name: Package zip
         shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}" -replace '^desktop-v', ''
-          if (-not $version -or $version -eq "${{ github.ref_name }}") { $version = "dev" }
+          $ref = "${{ inputs.tag }}"; if (-not $ref) { $ref = "${{ github.ref_name }}" }
+          $version = $ref -replace '^desktop-v', ''
+          if (-not $version -or $version -eq $ref) { $version = "dev" }
           $out = "trobar-desktop-$version-windows-x64.zip"
           Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath $out
           echo "ASSET=$out" >> $env:GITHUB_ENV
@@ -62,8 +67,9 @@ jobs:
       - run: flutter build macos --release
       - name: Package zip
         run: |
-          version="${GITHUB_REF_NAME#desktop-v}"
-          if [ "$version" = "$GITHUB_REF_NAME" ]; then version="dev"; fi
+          ref="${{ inputs.tag }}"; [ -z "$ref" ] && ref="$GITHUB_REF_NAME"
+          version="${ref#desktop-v}"
+          if [ "$version" = "$ref" ]; then version="dev"; fi
           out="trobar-desktop-$version-macos.zip"
           # Glob the built .app rather than hard-coding a name: the macOS
           # PRODUCT_NAME is "Trobar" (branding, #21), so the bundle is
@@ -91,7 +97,7 @@ jobs:
       - name: Create or reuse release, upload assets
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
             || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
