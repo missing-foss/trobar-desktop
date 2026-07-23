@@ -5,7 +5,6 @@
 // never automatic (the app otherwise talks to nothing but your server).
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -82,31 +81,6 @@ class _AboutScreenState extends State<AboutScreen> {
     }
   }
 
-  Future<void> _showDoc(String title, String asset) async {
-    final text = await rootBundle.loadString(asset);
-    if (!mounted) return;
-    final l = AppLocalizations.of(context);
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: SizedBox(
-          width: 640,
-          child: SingleChildScrollView(
-            child: Text(text,
-                style:
-                    const TextStyle(fontFamily: 'monospace', fontSize: 12)),
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(l.close)),
-        ],
-      ),
-    );
-  }
-
   Widget _link(IconData icon, String label, String url) => ListTile(
         leading: Icon(icon),
         title: Text(label),
@@ -125,9 +99,11 @@ class _AboutScreenState extends State<AboutScreen> {
             padding: const EdgeInsets.all(24),
             children: [
               // #25: five taps on the bard opens the "duel the bard" easter egg.
-              GestureDetector(
-                onTap: _onLogoTap,
-                child: Image.asset('assets/logo_bard.png', width: 110),
+              Center(
+                child: GestureDetector(
+                  onTap: _onLogoTap,
+                  child: Image.asset('assets/logo_bard.png', width: 140),
+                ),
               ),
               const SizedBox(height: 8),
               Center(
@@ -215,22 +191,16 @@ class _AboutScreenState extends State<AboutScreen> {
                       Text(l.aboutLicenseSummary,
                           style: const TextStyle(fontSize: 13)),
                       const SizedBox(height: 12),
-                      Wrap(spacing: 8, runSpacing: 8, children: [
-                        OutlinedButton(
-                          onPressed: () => _showDoc(
-                              'GPL-3.0-or-later', 'LICENSE'),
-                          child: Text(l.showLicense),
-                        ),
-                        // Flutter's own registry: every Dart package's
-                        // license.
-                        OutlinedButton(
-                          onPressed: () => showLicensePage(
-                              context: context,
-                              applicationName: 'Trobar desktop',
-                              applicationVersion: _version),
-                          child: Text(l.showThirdParty),
-                        ),
-                      ]),
+                      // Flutter's own registry: this app's own license
+                      // (registered in main()) alongside every bundled
+                      // package's, in one consistent viewer.
+                      OutlinedButton(
+                        onPressed: () => showLicensePage(
+                            context: context,
+                            applicationName: 'Trobar desktop',
+                            applicationVersion: _version),
+                        child: Text(l.showThirdParty),
+                      ),
                     ],
                   ),
                 ),

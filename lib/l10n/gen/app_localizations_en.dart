@@ -147,10 +147,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Trobar desktop is free software under the GNU GPL, version 3 or later. Every bundled library keeps its own license.';
 
   @override
-  String get showLicense => 'License';
-
-  @override
-  String get showThirdParty => 'Third-party';
+  String get showThirdParty => 'Show licenses';
 
   @override
   String get close => 'Close';

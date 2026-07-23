@@ -148,10 +148,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Trobar desktop est un logiciel libre sous licence GNU GPL, version 3 ou ultérieure. Chaque bibliothèque intégrée conserve sa propre licence.';
 
   @override
-  String get showLicense => 'Licence';
-
-  @override
-  String get showThirdParty => 'Composants tiers';
+  String get showThirdParty => 'Afficher les licences';
 
   @override
   String get close => 'Fermer';
