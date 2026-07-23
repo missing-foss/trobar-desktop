@@ -42,6 +42,38 @@ jobs:
           channel: stable
       - run: flutter pub get
       - run: flutter build windows --release
+      - name: Bundle VC++ runtime DLLs
+        # #63: `flutter build windows` links every release against the
+        # Visual C++ runtime, but that's not part of a base Windows
+        # install — it's only on this runner because Visual Studio is
+        # installed here. Without it, the zip fails to launch on a clean
+        # machine with "missing MSVCP140.dll" style dialogs. Bundling
+        # app-local is Microsoft-sanctioned redistribution and keeps the
+        # zip's unpack-and-run promise (same reasoning as Linux's
+        # documented libnotify dependency, see packaging/PLATFORM-NOTES.md).
+        # Globs edition/version rather than pinning a path, so a
+        # windows-latest image bump doesn't silently break this — and
+        # fails loudly if the DLLs aren't found, rather than shipping a
+        # silently-broken zip again.
+        shell: pwsh
+        run: |
+          $crtDir = Get-ChildItem "C:\Program Files*\Microsoft Visual Studio\*\*\VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT" `
+                      -Directory -ErrorAction SilentlyContinue |
+                    Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $crtDir) {
+            Write-Error "No Visual C++ Redistributable (Microsoft.VCxxx.CRT) directory found on this runner"
+            exit 1
+          }
+          $dlls = 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll'
+          foreach ($dll in $dlls) {
+            $src = Join-Path $crtDir.FullName $dll
+            if (-not (Test-Path $src)) {
+              Write-Error "Missing $dll under $($crtDir.FullName)"
+              exit 1
+            }
+          }
+          Copy-Item -Path ($dlls | ForEach-Object { Join-Path $crtDir.FullName $_ }) `
+                     -Destination "build\windows\x64\runner\Release\"
       - name: Package zip
         shell: pwsh
         run: |
