@@ -37,6 +37,17 @@ for any modified version.
 
 Flutter's Material icons (Apache-2.0) are part of the Flutter distribution above.
 
+## Microsoft Visual C++ Redistributable (Windows only)
+
+The Windows zip bundles three runtime DLLs from the Microsoft Visual C++
+Redistributable (`msvcp140.dll`, `vcruntime140.dll`, `vcruntime140_1.dll`) —
+Copyright Microsoft Corporation, redistributed app-local under the terms of
+the Visual Studio Redistributables license
+(https://visualstudio.microsoft.com/license-terms/vs2022-cruntime/). Every
+Flutter Windows release build links against this runtime; it isn't part of a
+base Windows install, so it ships alongside the app rather than requiring a
+separate installer (#63).
+
 ## Artwork
 
 The bard artwork (`assets/logo_bard.png`) is original work, licensed with

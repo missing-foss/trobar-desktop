@@ -43,6 +43,13 @@ real-device check.
 
 ## Windows
 
+- **Runtime dependency: the Visual C++ Redistributable** (`msvcp140.dll`,
+  `vcruntime140.dll`, `vcruntime140_1.dll`) — linked at load time by every
+  Flutter Windows release build, same failure shape as Linux's `libnotify`
+  above (app won't start without it). Not part of a base Windows install.
+  `.github/workflows/release.yml`'s `build-windows` job now copies these
+  app-local into the Release folder before zipping, so the published zip
+  is self-contained (#63) — see `THIRD_PARTY_NOTICES.md`.
 - Toasts use WinToast, which needs an **AppUserModelID**. `localNotifier.setup`
   is called with **`ShortcutPolicy.requireCreate`** (explicit in `main.dart`),
   which creates a Start-menu shortcut carrying that identity — so toasts work
