@@ -10,8 +10,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart' show LicenseRegistry, LicenseEntryWithLineBreaks;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:flutter/services.dart' show Clipboard, ClipboardData, rootBundle;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:local_notifier/local_notifier.dart';
 import 'package:window_manager/window_manager.dart';
@@ -37,6 +38,13 @@ const brandCanvas = Color(0xFF100E08);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // So the About screen's "Third-party" licence viewer (Flutter's own
+  // showLicensePage) lists this app's own GPL text alongside every bundled
+  // package's, instead of a second, hand-rolled dialog for just this one.
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(
+        const ['Trobar desktop'], await rootBundle.loadString('LICENSE'));
+  });
   // #24: window focus queries + local notifications. Local only, no telemetry.
   await windowManager.ensureInitialized();
   // requireCreate (the default, made explicit): on Windows a toast needs an

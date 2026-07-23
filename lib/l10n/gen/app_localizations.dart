@@ -326,16 +326,10 @@ abstract class AppLocalizations {
   /// **'Trobar desktop is free software under the GNU GPL, version 3 or later. Every bundled library keeps its own license.'**
   String get aboutLicenseSummary;
 
-  /// No description provided for @showLicense.
-  ///
-  /// In en, this message translates to:
-  /// **'License'**
-  String get showLicense;
-
   /// No description provided for @showThirdParty.
   ///
   /// In en, this message translates to:
-  /// **'Third-party'**
+  /// **'Show licenses'**
   String get showThirdParty;
 
   /// No description provided for @close.
