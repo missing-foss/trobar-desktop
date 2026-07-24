@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:trobar_desktop/card_store.dart';
 import 'package:trobar_desktop/models.dart';
 
@@ -86,4 +87,76 @@ void main() {
     final mode = configFileFor(root).statSync().mode & 0x1FF; // perm bits
     expect(mode, 0x180); // 0600 — owner rw only
   }, skip: Platform.isWindows ? 'no unix permissions on windows' : null);
+
+  group('discoverLocalFolders (#66)', () {
+    test('finds a valid config at a persisted path', () async {
+      await writeConfig(
+          root, const DeviceConfig(serverUrl: 'https://x', token: 't'));
+      final found = await discoverLocalFolders([root.path]);
+      expect(found, hasLength(1));
+      expect(found.single.$1.path, root.path);
+      expect(found.single.$2.serverUrl, 'https://x');
+    });
+
+    test('a path that no longer exists is silently dropped', () async {
+      final gone = p.join(root.path, 'never-existed');
+      expect(await discoverLocalFolders([gone]), isEmpty);
+    });
+
+    test('a path that exists but has no pairing file is dropped', () async {
+      expect(await discoverLocalFolders([root.path]), isEmpty);
+    });
+
+    test('a path with a corrupt config is dropped, not thrown', () async {
+      await configFileFor(root).parent.create(recursive: true);
+      await configFileFor(root).writeAsString('{ not json');
+      expect(await discoverLocalFolders([root.path]), isEmpty);
+    });
+
+    test('one bad path among several does not affect the good ones',
+        () async {
+      await writeConfig(
+          root, const DeviceConfig(serverUrl: 'https://x', token: 't'));
+      final gone = p.join(root.path, 'never-existed');
+      final found = await discoverLocalFolders([gone, root.path]);
+      expect(found, hasLength(1));
+      expect(found.single.$1.path, root.path);
+    });
+  });
+
+  group('isRemovable (#66)', () {
+    test('an arbitrary folder outside any mount convention is not removable',
+        () {
+      // root is a systemTemp dir — never under /media, /run/media, /Volumes,
+      // or (on Windows) equal to a bare drive-letter root.
+      expect(isRemovable(root), isFalse);
+    });
+
+    test('a path under the Linux removable-mount convention is removable',
+        () {
+      final user = Platform.environment['USER'] ?? '';
+      expect(isRemovable(Directory('/media/$user/SomeCard')), isTrue);
+    }, skip: Platform.isLinux ? null : 'Linux-specific mount convention');
+  });
+
+  group('parentDiskDevice (#66)', () {
+    // Regression test: an earlier version's regex had the 'p' separator
+    // *inside* the captured group, so it was greedily consumed even for
+    // mmcblk/nvme devices — /dev/nvme1n1p2 came back as "/dev/nvme1n1p"
+    // rather than "/dev/nvme1n1", which lsblk would then fail to find.
+    test('strips a partition suffix for sd/mmcblk/nvme devices', () {
+      expect(parentDiskDevice('/dev/sda1'), '/dev/sda');
+      expect(parentDiskDevice('/dev/sda'), '/dev/sda');
+      expect(parentDiskDevice('/dev/sdb2'), '/dev/sdb');
+      expect(parentDiskDevice('/dev/mmcblk0p1'), '/dev/mmcblk0');
+      expect(parentDiskDevice('/dev/mmcblk0'), '/dev/mmcblk0');
+      expect(parentDiskDevice('/dev/nvme1n1p2'), '/dev/nvme1n1');
+      expect(parentDiskDevice('/dev/nvme0n1'), '/dev/nvme0n1');
+    });
+
+    test('an unrecognised device path is passed through as-is', () {
+      expect(parentDiskDevice('/dev/mapper/luks-abc123'),
+          '/dev/mapper/luks-abc123');
+    });
+  });
 }

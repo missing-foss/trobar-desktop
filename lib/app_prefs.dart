@@ -33,6 +33,14 @@ class AppPrefs {
   /// #23: re-sync every N minutes while a card is open (0 = off).
   int autoSyncIntervalMinutes;
 
+  /// #66: manually-picked local folders (not under a removable-volume mount
+  /// root), so they're rediscovered on the next launch instead of having to
+  /// be re-picked by hand every time. Just a "look here" hint, same category
+  /// as a recent-locations list — the actual pairing still lives in
+  /// .trobar/device.json on the folder itself. A path that no longer exists
+  /// or no longer carries a config is dropped at discovery time, not here.
+  List<String> localFolders;
+
   final File _file;
 
   AppPrefs._(this._file, {
@@ -40,6 +48,7 @@ class AppPrefs {
     required this.missingPolicy,
     required this.autoSyncOnDetect,
     required this.autoSyncIntervalMinutes,
+    required this.localFolders,
   });
 
   static AppPrefs? _instance;
@@ -55,6 +64,7 @@ class AppPrefs {
     var missingPolicy = 'ask';
     var autoSyncOnDetect = false;
     var autoSyncIntervalMinutes = 0;
+    var localFolders = <String>[];
     try {
       if (await f.exists()) {
         final j = jsonDecode(await f.readAsString()) as Map<String, dynamic>;
@@ -64,6 +74,10 @@ class AppPrefs {
         autoSyncOnDetect = j['auto_sync_on_detect'] == true;
         autoSyncIntervalMinutes = _oneOfInt(
             j['auto_sync_interval_minutes'], autoSyncIntervalValues, 0);
+        final rawFolders = j['local_folders'];
+        if (rawFolders is List) {
+          localFolders = rawFolders.whereType<String>().toList();
+        }
       }
     } catch (_) {
       // corrupt / unreadable — use defaults
@@ -72,7 +86,8 @@ class AppPrefs {
         language: language,
         missingPolicy: missingPolicy,
         autoSyncOnDetect: autoSyncOnDetect,
-        autoSyncIntervalMinutes: autoSyncIntervalMinutes);
+        autoSyncIntervalMinutes: autoSyncIntervalMinutes,
+        localFolders: localFolders);
   }
 
   Future<void> save() async {
@@ -83,8 +98,16 @@ class AppPrefs {
           'missing_policy': missingPolicy,
           'auto_sync_on_detect': autoSyncOnDetect,
           'auto_sync_interval_minutes': autoSyncIntervalMinutes,
+          'local_folders': localFolders,
         })}\n',
         flush: true);
+  }
+
+  /// Remembers [path] for next launch (#66) — a no-op if it's already there.
+  Future<void> addLocalFolder(String path) async {
+    if (localFolders.contains(path)) return;
+    localFolders = [...localFolders, path];
+    await save();
   }
 
   static String _oneOf(Object? v, List<String> allowed, String fallback) =>
