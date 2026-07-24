@@ -73,3 +73,5 @@ Licensed `GPL-3.0-or-later` (see [LICENSE](LICENSE)), same as the Android
 client. Bundled third-party components (the Flutter engine and Dart
 packages) keep their own licenses — see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Contributing a translation? See [Translating Trobar](https://missing-foss.github.io/trobar-server/project/translations/).
