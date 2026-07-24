@@ -118,6 +118,167 @@ Future<List<(Directory, DeviceConfig)>> discoverCards() async {
   return found;
 }
 
+/// #66: a manually-picked local folder is never under one of
+/// [_candidateRoots], so discoverCards() never finds it again on the next
+/// launch — the caller is expected to persist [paths] itself (AppPrefs) and
+/// pass them back in here every rescan. An entry whose path no longer exists,
+/// or whose pairing file is gone/corrupt, is silently dropped rather than
+/// erroring — same "just fall off the list" handling AppPrefs' own
+/// out-of-range values get, and it mirrors discoverCards()' own per-volume
+/// try/catch.
+Future<List<(Directory, DeviceConfig)>> discoverLocalFolders(
+    List<String> paths) async {
+  final found = <(Directory, DeviceConfig)>[];
+  for (final path in paths) {
+    final dir = Directory(path);
+    try {
+      if (!await dir.exists()) continue;
+      final config = await readConfig(dir);
+      if (config != null) found.add((dir, config));
+    } on FileSystemException {
+      // unreadable (permissions, unmounted network share) — drop silently
+    }
+  }
+  return found;
+}
+
+/// True if [dir] sits under one of this platform's removable-volume mount
+/// conventions (the same roots discoverCards() scans) — i.e. it's something
+/// you'd expect to be able to unplug, as opposed to a folder picked by hand
+/// anywhere else on the machine (#66). A path-prefix heuristic, same
+/// precision discoverCards() itself already relies on — not a guarantee (a
+/// fixed Windows drive letter matches too, same as discoverCards() already
+/// doesn't distinguish fixed from removable there).
+bool isRemovable(Directory dir) {
+  final target = p.normalize(dir.absolute.path);
+  for (final root in _candidateRoots()) {
+    final rootPath = p.normalize(root.absolute.path);
+    if (p.equals(target, rootPath) || p.isWithin(rootPath, target)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/// The icon-relevant kind of a sync target (#66). `local` is free and always
+/// correct (Platform.isX at the call site); the removable split needs an
+/// actual per-platform probe (see [probeRemovableKind]), which can fail or be
+/// inconclusive — `removableUnknown` is that fallback, a normal outcome and
+/// not a bug, never a guess presented as a fact.
+enum TargetKind { local, removableSd, removableUsb, removableUnknown }
+
+/// Best-effort SD-vs-USB probe for a removable [dir], via each platform's own
+/// tooling. Never throws and never blocks discovery: any failure (missing
+/// binary, permission error, an exotic mount, an unrecognised platform)
+/// degrades to [TargetKind.removableUnknown] rather than propagating — the
+/// owner can always correct the type later, so getting this wrong
+/// occasionally is fine; crashing or hanging discovery over it is not.
+/// Callers should only invoke this once [isRemovable] is already true.
+Future<TargetKind> probeRemovableKind(Directory dir) async {
+  try {
+    if (Platform.isLinux) return await _probeLinux(dir);
+    if (Platform.isMacOS) return await _probeMacOS(dir);
+    if (Platform.isWindows) return await _probeWindows(dir);
+  } catch (_) {
+    // fall through to unknown
+  }
+  return TargetKind.removableUnknown;
+}
+
+/// `findmnt` maps the mountpoint to its backing device, then `lsblk`'s
+/// `TRAN` column says how that device is attached: `mmc` is unambiguously an
+/// SD/MMC card (built-in reader); `usb` covers both a USB stick and a card in
+/// a USB reader, so `udevadm`'s `ID_DRIVE_FLASH_SD` narrows that case further
+/// where the reader advertises it (many don't, hence the still-generic `usb`
+/// fallback for those).
+Future<TargetKind> _probeLinux(Directory dir) async {
+  final mount = await Process.run('findmnt', ['-no', 'SOURCE', dir.path]);
+  if (mount.exitCode != 0) return TargetKind.removableUnknown;
+  final device = (mount.stdout as String).trim();
+  if (device.isEmpty) return TargetKind.removableUnknown;
+
+  final lsblk = await Process.run(
+      'lsblk', ['-no', 'TRAN', '-d', parentDiskDevice(device)]);
+  if (lsblk.exitCode != 0) return TargetKind.removableUnknown;
+  final tran = (lsblk.stdout as String).trim();
+  if (tran == 'mmc') return TargetKind.removableSd;
+  if (tran != 'usb') return TargetKind.removableUnknown;
+
+  final udev = await Process.run(
+      'udevadm', ['info', '--query=property', '--name=$device']);
+  if (udev.exitCode == 0 &&
+      (udev.stdout as String).contains('ID_DRIVE_FLASH_SD=1')) {
+    return TargetKind.removableSd;
+  }
+  return TargetKind.removableUsb;
+}
+
+/// lsblk -d wants the whole-disk device (e.g. /dev/sda), not a partition
+/// (/dev/sda1) — strips a trailing partition-number suffix. Good enough for
+/// the common /dev/sdX[N] and /dev/{mmcblk,nvme}X[pN] shapes; an
+/// unrecognised pattern is passed through as-is and simply won't match a
+/// real device, which lsblk then reports as an error -> removableUnknown
+/// upstream. Two separate patterns, not one: sdX's partition suffix has no
+/// 'p' separator (sda1) while mmcblk/nvme's does (mmcblk0p1, nvme0n1p1) — a
+/// single regex with an optional 'p' *inside* the captured group greedily
+/// swallows that 'p' even for the whole-disk case, corrupting the result
+/// (caught by a direct test of this function: nvme1n1p2 came back as
+/// nvme1n1p, not nvme1n1). Not underscore-prefixed despite being an
+/// internal-only helper — the regex logic is exactly the kind of thing that
+/// silently regresses without a direct test, and Dart's privacy is
+/// per-library, so testing it means exposing it.
+String parentDiskDevice(String device) {
+  final sd = RegExp(r'^(/dev/sd[a-z]+)\d*$').firstMatch(device);
+  if (sd != null) return sd.group(1)!;
+  final mmcOrNvme =
+      RegExp(r'^(/dev/(?:mmcblk\d+|nvme\d+n\d+))p?\d*$').firstMatch(device);
+  return mmcOrNvme?.group(1) ?? device;
+}
+
+/// `diskutil info -plist` on the volume gives BusProtocol directly — no
+/// device-node indirection needed, unlike Linux.
+Future<TargetKind> _probeMacOS(Directory dir) async {
+  final result =
+      await Process.run('diskutil', ['info', '-plist', dir.path]);
+  if (result.exitCode != 0) return TargetKind.removableUnknown;
+  final out = result.stdout as String;
+  // Extract BusProtocol's own <string> value specifically, not a substring
+  // search over the whole plist — a whole-output search could in theory
+  // false-match a volume/media *name* containing "USB" or "Secure Digital"
+  // rather than the actual bus, even though BusProtocol's real vocabulary
+  // ("USB", "Secure Digital", "PCI-Express", "SATA", ...) makes that
+  // collision unlikely in practice.
+  final match =
+      RegExp(r'<key>BusProtocol</key>\s*<string>([^<]*)</string>')
+          .firstMatch(out);
+  switch (match?.group(1)) {
+    case 'Secure Digital':
+      return TargetKind.removableSd;
+    case 'USB':
+      return TargetKind.removableUsb;
+    default:
+      return TargetKind.removableUnknown;
+  }
+}
+
+/// `GetDriveType()` is deliberately not used here — confirmed unreliable
+/// (many USB drives report DRIVE_FIXED). `Get-PhysicalDisk`'s BusType is the
+/// correct signal; matching the drive letter to its physical disk needs
+/// `Get-Partition` as the join in between.
+Future<TargetKind> _probeWindows(Directory dir) async {
+  final driveLetter = p.rootPrefix(dir.absolute.path).replaceAll(r'\', '');
+  if (driveLetter.isEmpty) return TargetKind.removableUnknown;
+  final script = '(Get-Partition -DriveLetter "${driveLetter.replaceAll(':', '')}" '
+      '| Get-Disk | Get-PhysicalDisk).BusType';
+  final result =
+      await Process.run('powershell', ['-NoProfile', '-Command', script]);
+  if (result.exitCode != 0) return TargetKind.removableUnknown;
+  final busType = (result.stdout as String).trim();
+  if (busType == 'SD') return TargetKind.removableSd;
+  if (busType == 'USB') return TargetKind.removableUsb;
+  return TargetKind.removableUnknown;
+}
+
 /// Free/total bytes of the filesystem holding [root] — reported to the
 /// server so the web UI can sanity-check the device's storage limit.
 /// Uses `df` on Linux/macOS; unsupported elsewhere (returns null).

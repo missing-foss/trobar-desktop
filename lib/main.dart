@@ -134,6 +134,10 @@ class _HomeScreenState extends State<HomeScreen> {
   // *appears* while the app is open (an insert), not ones present at launch.
   Set<String> _seenRoots = {};
   Timer? _poll;
+  // #66: TargetKind per card path (drives the home-screen icon), probed once
+  // and cached rather than on every rescan — a removable probe shells out to
+  // platform tooling, and the auto-scan poll runs every 8s.
+  final Map<String, TargetKind> _kinds = {};
 
   @override
   void initState() {
@@ -150,9 +154,37 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  /// #66: removable-volume scan (unchanged) plus any manually-picked local
+  /// folders remembered in AppPrefs — a path that no longer exists or lost
+  /// its pairing file just isn't in the result, no error surfaced here.
+  Future<List<(Directory, DeviceConfig)>> _discoverAll() async {
+    final removable = await discoverCards();
+    final local =
+        await discoverLocalFolders(AppPrefs.instance.localFolders);
+    return [...removable, ...local];
+  }
+
+  /// Probes only paths not already cached (see `_kinds`' own doc comment).
+  /// Also drops cached entries for paths no longer present — #66 review: a
+  /// removable volume unmounted and a *different* one later mounted at the
+  /// same path (e.g. the same `/media/$USER/USB` reused) would otherwise
+  /// keep showing the old kind until the app restarts.
+  Future<void> _refreshKinds(List<(Directory, DeviceConfig)> cards) async {
+    final present = {for (final c in cards) c.$1.path};
+    _kinds.removeWhere((path, _) => !present.contains(path));
+    for (final c in cards) {
+      final path = c.$1.path;
+      if (_kinds.containsKey(path)) continue;
+      _kinds[path] = isRemovable(c.$1)
+          ? await probeRemovableKind(c.$1)
+          : TargetKind.local;
+    }
+  }
+
   Future<void> _rescan() async {
     setState(() => _scanning = true);
-    final cards = await discoverCards();
+    final cards = await _discoverAll();
+    await _refreshKinds(cards);
     if (!mounted) return;
     setState(() {
       _cards = cards;
@@ -168,7 +200,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
     final route = ModalRoute.of(context);
     if (route != null && !route.isCurrent) return;
-    final cards = await discoverCards();
+    final cards = await _discoverAll();
+    await _refreshKinds(cards);
     if (!mounted) return;
     final roots = {for (final c in cards) c.$1.path};
     final appeared = roots.difference(_seenRoots);
@@ -188,6 +221,15 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// #66: remembers a manually-picked *local* (non-removable) folder so it's
+  /// rediscovered on the next launch — a removable one is always found fresh
+  /// by discoverCards(), so there's nothing to persist for those.
+  Future<void> _rememberIfLocal(Directory root) async {
+    if (!isRemovable(root)) {
+      await AppPrefs.instance.addLocalFolder(root.path);
+    }
+  }
+
   Future<void> _openFolder() async {
     final path = await getDirectoryPath();
     if (path == null || !mounted) return;
@@ -195,11 +237,40 @@ class _HomeScreenState extends State<HomeScreen> {
     final config = await readConfig(root);
     if (!mounted) return;
     if (config != null) {
-      _openCard(root, config);
+      await _rememberIfLocal(root);
+      if (mounted) _openCard(root, config);
     } else {
       final saved = await Navigator.of(context).push<DeviceConfig>(
           MaterialPageRoute(builder: (_) => PairScreen(root: root)));
-      if (saved != null && mounted) _openCard(root, saved);
+      if (saved != null && mounted) {
+        await _rememberIfLocal(root);
+        if (mounted) _openCard(root, saved);
+      }
+    }
+  }
+
+  /// #66: local → this machine's own OS icon (always correct, free); SD/USB
+  /// → the specific glyph once the probe is conclusive; anything else
+  /// (probe inconclusive, or not yet probed) → the generic removable-media
+  /// icon this screen always showed before this feature existed.
+  IconData _iconFor(String path) {
+    switch (_kinds[path]) {
+      case TargetKind.local:
+        if (Platform.isWindows) return Icons.desktop_windows;
+        if (Platform.isMacOS) return Icons.laptop_mac;
+        return Icons.computer;
+      case TargetKind.removableUsb:
+        return Icons.usb;
+      case TargetKind.removableSd:
+        return Icons.sd_card;
+      case TargetKind.removableUnknown:
+      case null:
+        // #66 review: this must stay visually distinct from removableSd
+        // above — sharing Icons.sd_card here would bias "couldn't tell"
+        // toward "it's an SD card", and would make the mmc/ID_DRIVE_FLASH_SD
+        // detection in probeRemovableKind invisible (confirmed-SD and
+        // gave-up would render identically).
+        return Icons.storage;
     }
   }
 
@@ -262,7 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 else
                   ..._cards.map((c) => Card(
                         child: ListTile(
-                          leading: const Icon(Icons.sd_card),
+                          leading: Icon(_iconFor(c.$1.path)),
                           title: Text(c.$1.path),
                           onTap: () => _openCard(c.$1, c.$2),
                         ),

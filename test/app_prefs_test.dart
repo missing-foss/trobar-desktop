@@ -28,6 +28,8 @@ void main() {
     // #23: auto-sync is opt-in / off by default.
     expect(prefs.autoSyncOnDetect, isFalse);
     expect(prefs.autoSyncIntervalMinutes, 0);
+    // #66: no remembered local folders until one's actually added.
+    expect(prefs.localFolders, isEmpty);
   });
 
   test('save then load round-trips the values', () async {
@@ -36,7 +38,8 @@ void main() {
       ..language = 'fr'
       ..missingPolicy = 'redownload'
       ..autoSyncOnDetect = true
-      ..autoSyncIntervalMinutes = 60;
+      ..autoSyncIntervalMinutes = 60
+      ..localFolders = ['/home/alice/Music/player'];
     await prefs.save();
 
     final reloaded = await AppPrefs.load(file: prefsFile());
@@ -44,6 +47,40 @@ void main() {
     expect(reloaded.missingPolicy, 'redownload');
     expect(reloaded.autoSyncOnDetect, isTrue);
     expect(reloaded.autoSyncIntervalMinutes, 60);
+    expect(reloaded.localFolders, ['/home/alice/Music/player']);
+  });
+
+  group('localFolders (#66)', () {
+    test('addLocalFolder appends and persists', () async {
+      final prefs = await AppPrefs.load(file: prefsFile());
+      await prefs.addLocalFolder('/srv/music');
+      expect(prefs.localFolders, ['/srv/music']);
+
+      final reloaded = await AppPrefs.load(file: prefsFile());
+      expect(reloaded.localFolders, ['/srv/music']);
+    });
+
+    test('addLocalFolder is a no-op for an already-remembered path',
+        () async {
+      final prefs = await AppPrefs.load(file: prefsFile());
+      await prefs.addLocalFolder('/srv/music');
+      await prefs.addLocalFolder('/srv/music');
+      expect(prefs.localFolders, ['/srv/music']);
+    });
+
+    test('a non-list local_folders value falls back to empty', () async {
+      await prefsFile().writeAsString('{"local_folders":"not-a-list"}');
+      final prefs = await AppPrefs.load(file: prefsFile());
+      expect(prefs.localFolders, isEmpty);
+    });
+
+    test('non-string entries in local_folders are dropped, not thrown',
+        () async {
+      await prefsFile().writeAsString(
+          '{"local_folders":["/ok/path", 42, null, "/also/ok"]}');
+      final prefs = await AppPrefs.load(file: prefsFile());
+      expect(prefs.localFolders, ['/ok/path', '/also/ok']);
+    });
   });
 
   test('an out-of-range auto-sync interval falls back to off (#23)', () async {
