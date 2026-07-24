@@ -6,7 +6,7 @@ name: trobar_desktop
 description: "Trobar desktop sync client — syncs library selections onto SD cards and local folders for network-less DAPs."
 publish_to: 'none'
 
-version: 0.8.0+9
+version: 0.9.0+10
 
 environment:
   sdk: ^3.9.2
