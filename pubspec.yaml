@@ -25,7 +25,7 @@ dependencies:
   # #24: native completion notification when the window is unfocused. Local
   # only — nothing phoned home (the app's no-telemetry stance).
   local_notifier: ^0.1.6
-  window_manager: ^0.4.3
+  window_manager: ^0.5.2
 
 dev_dependencies:
   flutter_test:
