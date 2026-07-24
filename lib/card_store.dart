@@ -242,14 +242,23 @@ Future<TargetKind> _probeMacOS(Directory dir) async {
       await Process.run('diskutil', ['info', '-plist', dir.path]);
   if (result.exitCode != 0) return TargetKind.removableUnknown;
   final out = result.stdout as String;
-  // Cheap substring checks rather than a full plist parser: BusProtocol's
-  // value is a short, fixed vocabulary ("USB", "Secure Digital", "PCI-Express",
-  // "SATA", ...) so a direct search for the strings we care about is exact.
-  if (out.contains('<key>BusProtocol</key>')) {
-    if (out.contains('Secure Digital')) return TargetKind.removableSd;
-    if (out.contains('>USB<')) return TargetKind.removableUsb;
+  // Extract BusProtocol's own <string> value specifically, not a substring
+  // search over the whole plist — a whole-output search could in theory
+  // false-match a volume/media *name* containing "USB" or "Secure Digital"
+  // rather than the actual bus, even though BusProtocol's real vocabulary
+  // ("USB", "Secure Digital", "PCI-Express", "SATA", ...) makes that
+  // collision unlikely in practice.
+  final match =
+      RegExp(r'<key>BusProtocol</key>\s*<string>([^<]*)</string>')
+          .firstMatch(out);
+  switch (match?.group(1)) {
+    case 'Secure Digital':
+      return TargetKind.removableSd;
+    case 'USB':
+      return TargetKind.removableUsb;
+    default:
+      return TargetKind.removableUnknown;
   }
-  return TargetKind.removableUnknown;
 }
 
 /// `GetDriveType()` is deliberately not used here — confirmed unreliable

@@ -165,7 +165,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Probes only paths not already cached (see `_kinds`' own doc comment).
+  /// Also drops cached entries for paths no longer present — #66 review: a
+  /// removable volume unmounted and a *different* one later mounted at the
+  /// same path (e.g. the same `/media/$USER/USB` reused) would otherwise
+  /// keep showing the old kind until the app restarts.
   Future<void> _refreshKinds(List<(Directory, DeviceConfig)> cards) async {
+    final present = {for (final c in cards) c.$1.path};
+    _kinds.removeWhere((path, _) => !present.contains(path));
     for (final c in cards) {
       final path = c.$1.path;
       if (_kinds.containsKey(path)) continue;
@@ -256,9 +262,15 @@ class _HomeScreenState extends State<HomeScreen> {
       case TargetKind.removableUsb:
         return Icons.usb;
       case TargetKind.removableSd:
+        return Icons.sd_card;
       case TargetKind.removableUnknown:
       case null:
-        return Icons.sd_card;
+        // #66 review: this must stay visually distinct from removableSd
+        // above — sharing Icons.sd_card here would bias "couldn't tell"
+        // toward "it's an SD card", and would make the mmc/ID_DRIVE_FLASH_SD
+        // detection in probeRemovableKind invisible (confirmed-SD and
+        // gave-up would render identically).
+        return Icons.storage;
     }
   }
 
