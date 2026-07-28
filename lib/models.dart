@@ -128,6 +128,115 @@ class PlaylistFile {
       );
 }
 
+/// #239/#77: one row of this device's server-computed fingerprints (GET
+/// /api/device/fingerprints), or one row to push back (POST
+/// /api/device/provenance) — same wire shape either direction. `path` is
+/// the same device_path() form [TrackChange.relativePath] already uses;
+/// `fingerprint` is always the SOURCE audio's, even on a transcoding
+/// device holding an MP3 — don't try to verify it against the local file,
+/// it won't match, by design (see the server's provenance.py docstring).
+///
+/// `pushed` is NOT part of the wire format — local-only bookkeeping for
+/// whether this row has been acknowledged by #80's push, persisted
+/// alongside everything else in provenance.json so it survives a restart
+/// without re-sending rows the server already has.
+class ProvenanceRecord {
+  final int trackId;
+  final String fingerprint;
+  final String path;
+  final bool pushed;
+
+  const ProvenanceRecord({
+    required this.trackId,
+    required this.fingerprint,
+    required this.path,
+    this.pushed = false,
+  });
+
+  ProvenanceRecord copyWith({bool? pushed}) => ProvenanceRecord(
+        trackId: trackId,
+        fingerprint: fingerprint,
+        path: path,
+        pushed: pushed ?? this.pushed,
+      );
+
+  /// A row as GET /api/device/fingerprints reports it — freshly arrived,
+  /// so never yet pushed.
+  factory ProvenanceRecord.fromFingerprintJson(Map<String, dynamic> json) =>
+      ProvenanceRecord(
+        trackId: json['track_id'] as int,
+        fingerprint: json['fingerprint'] as String,
+        path: json['path'] as String,
+      );
+
+  /// The on-disk shape (provenance.json) — the only place `pushed` is
+  /// serialized; missing/wrong-type there defaults to false, same
+  /// "corrupt means start over" leniency readProvenance already applies
+  /// at the file level.
+  factory ProvenanceRecord.fromStoredJson(Map<String, dynamic> json) =>
+      ProvenanceRecord(
+        trackId: json['track_id'] as int,
+        fingerprint: json['fingerprint'] as String,
+        path: json['path'] as String,
+        pushed: json['pushed'] as bool? ?? false,
+      );
+
+  Map<String, dynamic> toStoredJson() => {
+        'track_id': trackId,
+        'fingerprint': fingerprint,
+        'path': path,
+        'pushed': pushed,
+      };
+
+  /// The wire shape for POST /api/device/provenance — no `pushed` field;
+  /// the server doesn't know or care about this client's local
+  /// bookkeeping.
+  Map<String, dynamic> toPushJson() =>
+      {'track_id': trackId, 'fingerprint': fingerprint, 'path': path};
+}
+
+/// One page of [ProvenanceRecord]s, cursor-paginated on ascending
+/// track_id. `nextAfter` null means the cursor walk is done; `pending`
+/// can still be > 0 on that last page — those tracks just don't have a
+/// server-computed fingerprint YET, not an error.
+class FingerprintPage {
+  final List<ProvenanceRecord> entries;
+  final int? nextAfter;
+  final int pending;
+
+  const FingerprintPage(
+      {required this.entries, this.nextAfter, required this.pending});
+
+  factory FingerprintPage.fromJson(Map<String, dynamic> json) =>
+      FingerprintPage(
+        entries: [
+          for (final e in json['entries'] as List)
+            ProvenanceRecord.fromFingerprintJson(e as Map<String, dynamic>)
+        ],
+        nextAfter: json['next_after'] as int?,
+        pending: json['pending'] as int? ?? 0,
+      );
+}
+
+/// `pending` here is the server's own count of this device's still-
+/// unmatched pushed rows — matching happens in a background job, so this
+/// response is immediate and doesn't reflect it settling to 0.
+class ProvenancePushResult {
+  final int received;
+  final int stored;
+  final int pending;
+
+  const ProvenancePushResult(
+      {required this.received, required this.stored, required this.pending});
+
+  factory ProvenancePushResult.fromJson(Map<String, dynamic> json) =>
+      ProvenancePushResult(
+        received: json['received'] as int? ?? 0,
+        stored: json['stored'] as int? ?? 0,
+        pending: json['pending'] as int? ?? 0,
+      );
+}
+
 class ChangeSet {
   final List<TrackChange> toDownload;
   final List<TrackChange> toDelete;

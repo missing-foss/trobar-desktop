@@ -26,6 +26,7 @@ import 'card_store.dart';
 import 'locale_notifier.dart';
 import 'models.dart';
 import 'notify.dart';
+import 'provenance.dart';
 import 'settings_screen.dart';
 import 'sync_engine.dart';
 import 'syncing_logo.dart';
@@ -605,6 +606,15 @@ class _CardScreenState extends State<CardScreen> {
       result = await engine.run(changes,
           onProgress: (pr) => setState(() => _progress = pr));
       syncError = result.firstError;
+
+      // #77/#80: best-effort — a provenance hiccup must never fail the
+      // sync itself, matching how writeSyncOutcome below treats a
+      // read-only/removed card.
+      try {
+        await syncProvenance(_api, widget.root);
+      } catch (_) {
+        // try again next sync
+      }
 
       // leftovers no track claims (e.g. old-extension files
       // after a transcode-format change). Confirm-gated — the card may
