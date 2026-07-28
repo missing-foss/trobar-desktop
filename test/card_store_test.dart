@@ -159,4 +159,33 @@ void main() {
           '/dev/mapper/luks-abc123');
     });
   });
+
+  group('manifest-pending marker (#84)', () {
+    test('not pending until markManifestPending is called', () async {
+      expect(await manifestPending(root), isFalse);
+    });
+
+    test('markManifestPending sets it, clearManifestPending unsets it',
+        () async {
+      await markManifestPending(root);
+      expect(await manifestPending(root), isTrue);
+
+      await clearManifestPending(root);
+      expect(await manifestPending(root), isFalse);
+    });
+
+    test('clearManifestPending on an already-clear card is a no-op, not '
+        'an error', () async {
+      await clearManifestPending(root);
+      expect(await manifestPending(root), isFalse);
+    });
+
+    test('the marker lives under .trobar, same as the rest of the card '
+        'state', () async {
+      await markManifestPending(root);
+      expect(
+          File(p.join(root.path, '.trobar', 'manifest_pending')).existsSync(),
+          isTrue);
+    });
+  });
 }

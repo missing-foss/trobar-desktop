@@ -21,6 +21,16 @@ const syncStateFileName = 'last_sync.json';
 // sync_engine.dart's orphan scan already excludes the whole configDirName,
 // so this needs no exclusion of its own.
 const provenanceFileName = 'provenance.json';
+// #84: existence-only marker — set right after pairing, cleared only once
+// the manifest handshake (source_of_truth + POST /api/device/manifest)
+// completes. Persisted on the card rather than an in-memory app flag for
+// the same two reasons provenance lives here (#81): it survives a network
+// failure at pairing time (checked on every card open, not just the fresh
+// one, so a failed attempt just retries next time instead of permanently
+// forfeiting the re-download-avoidance win), and it survives the card
+// being paired on one machine and later opened on another. Already
+// excluded from the orphan scan along with the rest of configDirName.
+const manifestPendingFileName = 'manifest_pending';
 
 File configFileFor(Directory root) =>
     File(p.join(root.path, configDirName, configFileName));
@@ -30,6 +40,25 @@ File syncStateFileFor(Directory root) =>
 
 File provenanceFileFor(Directory root) =>
     File(p.join(root.path, configDirName, provenanceFileName));
+
+File manifestPendingFileFor(Directory root) =>
+    File(p.join(root.path, configDirName, manifestPendingFileName));
+
+/// #84: set at pairing — see [manifestPendingFileName] for why this lives
+/// on the card. A no-op body; presence alone is the signal.
+Future<void> markManifestPending(Directory root) async {
+  final f = manifestPendingFileFor(root);
+  await f.parent.create(recursive: true);
+  await f.writeAsBytes(const [], flush: true);
+}
+
+Future<bool> manifestPending(Directory root) =>
+    manifestPendingFileFor(root).exists();
+
+Future<void> clearManifestPending(Directory root) async {
+  final f = manifestPendingFileFor(root);
+  if (await f.exists()) await f.delete();
+}
 
 /// The last sync's outcome, persisted alongside the pairing config so it
 /// travels with the card and shows on reopen (#20). Missing/corrupt → null.
