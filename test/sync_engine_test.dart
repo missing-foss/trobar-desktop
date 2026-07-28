@@ -203,12 +203,16 @@ void main() {
         isTrue);
   });
 
-  test('collectManifestPaths lists every file on the card, spares .trobar '
-      'and artist.jpg', () async {
+  test(
+      'collectManifestPaths lists only audio files, spares playlists, '
+      'artist.jpg, .trobar and other non-audio files (#85)', () async {
     for (final rel in [
       'A/B/01 - One.flac',
       'A/B/02 - Two.mp3',
+      'A/B/03 - Three.m4a', // every extension in audioExtensions is covered
       'A/artist.jpg',
+      'Road Trip.m3u8', // a playlist Trobar itself wrote — not audio
+      'C/random-note.txt', // the user's own unrelated file
       '.trobar/device.json',
       '.trobar/provenance.json',
     ]) {
@@ -220,7 +224,11 @@ void main() {
     final engine = SyncEngine(_client({}, []), card);
     final held = await engine.collectManifestPaths();
 
-    expect(held, ['A/B/01 - One.flac', 'A/B/02 - Two.mp3']);
+    expect(held, [
+      'A/B/01 - One.flac',
+      'A/B/02 - Two.mp3',
+      'A/B/03 - Three.m4a',
+    ]);
   });
 
   test('collectManifestPaths on a blank card returns an empty list',

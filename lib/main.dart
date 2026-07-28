@@ -245,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
           MaterialPageRoute(builder: (_) => PairScreen(root: root)));
       if (saved != null && mounted) {
         await _rememberIfLocal(root);
-        if (mounted) _openCard(root, saved, freshEnrollment: true);
+        if (mounted) _openCard(root, saved);
       }
     }
   }
@@ -275,15 +275,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _openCard(Directory root, DeviceConfig config,
-      {bool autoSync = false, bool freshEnrollment = false}) {
+  void _openCard(Directory root, DeviceConfig config, {bool autoSync = false}) {
     Navigator.of(context)
         .push(MaterialPageRoute(
-            builder: (_) => CardScreen(
-                root: root,
-                config: config,
-                autoSync: autoSync,
-                freshEnrollment: freshEnrollment)))
+            builder: (_) =>
+                CardScreen(root: root, config: config, autoSync: autoSync)))
         .then((_) => _rescan());
   }
 
@@ -409,6 +405,11 @@ class _PairScreenState extends State<PairScreen> {
     }
     try {
       await writeConfig(widget.root, config);
+      // #84: recorded here, at pairing, rather than passed as an in-memory
+      // flag to CardScreen — see manifestPendingFileName's own doc for why
+      // persisting it on the card matters (survives a network failure and
+      // a machine switch, checked on every open rather than only this one).
+      await markManifestPending(widget.root);
     } on FileSystemException catch (e) {
       // The config was fine — the card wasn't. Say so explicitly.
       setState(() => _error = l10n.pairWriteFailed(
@@ -476,17 +477,11 @@ class CardScreen extends StatefulWidget {
   /// auto-opened on detection).
   final bool autoSync;
 
-  /// #82: this card was just paired for the first time this session (a
-  /// genuinely new pairing, or a re-enrollment under a new device id after
-  /// `.trobar/` was lost) — see _recoverIfFresh.
-  final bool freshEnrollment;
-
   const CardScreen({
     super.key,
     required this.root,
     required this.config,
     this.autoSync = false,
-    this.freshEnrollment = false,
   });
 
   @override
@@ -515,41 +510,50 @@ class _CardScreenState extends State<CardScreen> {
   void initState() {
     super.initState();
     _load().then((_) async {
-      // #82: before anything else gets a chance to sync/prune, tell the
-      // server what a freshly (re-)paired card already holds.
-      if (widget.freshEnrollment) await _recoverIfFresh();
+      // #82/#84: before anything else gets a chance to sync/prune, tell the
+      // server what this card already holds — checked on every open (the
+      // marker persists on the card), not just a fresh pairing, so a
+      // failed attempt keeps retrying instead of permanently forfeiting
+      // the re-download-avoidance win.
+      await _recoverIfPending();
       // Auto-sync on open (a detected-card insert), once the first load settled.
       if (widget.autoSync && mounted && !_syncing) _sync(unattended: true);
     });
     _restartInterval();
   }
 
-  /// #82: a freshly (re-)paired card's device id is brand new to the
-  /// server, most commonly because `.trobar/` was lost (metadata
-  /// corruption, a cleared hidden folder) while the music itself survived.
-  /// Tell the server what's already here before the first sync, so
-  /// whatever selections end up assigned to this device — now or later —
-  /// don't trigger a needless re-download of files already on the card.
+  /// #82/#84: a device id the server has no manifest record for yet — set
+  /// pending at pairing (see [markManifestPending]), most commonly relevant
+  /// after `.trobar/` was lost (metadata corruption, a cleared hidden
+  /// folder) while the music itself survived, forcing re-enrollment under a
+  /// brand-new device id. Tell the server what's already here before the
+  /// first sync, so whatever selections end up assigned to this device —
+  /// now or later — don't trigger a needless re-download of files already
+  /// on the card.
   ///
   /// source_of_truth='device' is set FIRST: it's what stops the very next
   /// recompute from pruning the 'downloaded' rows the manifest is about to
   /// write, for a device that hasn't been assigned matching selections yet.
-  /// A blank card (nothing found) skips both calls entirely — there's
-  /// nothing to protect, and no reason to flip this device to `device`-
-  /// sourced-of-truth clean.
+  /// A blank card (nothing found) skips both calls — there's nothing to
+  /// protect, and no reason to flip this device to `device` source-of-truth
+  /// — but the marker still clears, same as a successful handshake: there's
+  /// nothing left pending either way.
   ///
-  /// Best-effort, same as provenance sync in [_sync]: a network hiccup
-  /// here just means this one pairing doesn't get the re-download-avoidance
-  /// win, not a broken first sync.
-  Future<void> _recoverIfFresh() async {
+  /// Only a genuine failure (network, server) leaves the marker in place,
+  /// so the next card open retries — same property Android's
+  /// `Prefs.recoveryPending`/`SyncEngine.recoverIfPending` has.
+  Future<void> _recoverIfPending() async {
+    if (!await manifestPending(widget.root)) return;
     try {
       final engine = SyncEngine(_api, widget.root);
       final held = await engine.collectManifestPaths();
-      if (held.isEmpty) return;
-      await _api.setSourceOfTruth('device');
-      await _api.postManifest(held);
+      if (held.isNotEmpty) {
+        await _api.setSourceOfTruth('device');
+        await _api.postManifest(held);
+      }
+      await clearManifestPending(widget.root);
     } catch (_) {
-      // best-effort — try again next fresh pairing, this one just re-syncs.
+      // best-effort — the marker stays set, so this retries next open.
     }
   }
 

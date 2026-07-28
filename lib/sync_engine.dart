@@ -13,6 +13,14 @@ import 'api_client.dart';
 import 'card_store.dart';
 import 'models.dart';
 
+/// #85: kept aligned with trobar-android's SyncEngine.kt AUDIO_EXTENSIONS
+/// — both clients talk to the same server-side matcher, so the two lists
+/// drifting apart would silently change what "an audio file" means
+/// per-client. Update both together if this ever changes.
+const audioExtensions = {
+  'flac', 'mp3', 'm4a', 'ogg', 'opus', 'wav', 'aac', 'alac',
+};
+
 class SyncProgress {
   final int done;
   final int total;
@@ -266,16 +274,31 @@ class SyncEngine {
     return orphans;
   }
 
-  /// #82: every file already on the card, as manifest-upload candidates for
-  /// a freshly (re-)paired device the server has no record of yet — most
-  /// commonly a card whose `.trobar/` was lost (metadata corruption, a
-  /// cleared hidden folder) while the music itself survived, forcing
-  /// re-enrollment under a brand-new device id. Reuses [findOrphans]' own
-  /// walk with an empty [ChangeSet]: nothing is "expected" yet, so
-  /// everything it would otherwise flag as a leftover is exactly the set
-  /// `POST /api/device/manifest` wants — what this card already holds.
-  Future<List<String>> collectManifestPaths() => findOrphans(
-      const ChangeSet(toDownload: [], toDelete: [], downloaded: []));
+  /// #82: every audio file already on the card, as manifest-upload
+  /// candidates for a freshly (re-)paired device the server has no record
+  /// of yet — most commonly a card whose `.trobar/` was lost (metadata
+  /// corruption, a cleared hidden folder) while the music itself survived,
+  /// forcing re-enrollment under a brand-new device id. Reuses
+  /// [findOrphans]' own walk with an empty [ChangeSet]: nothing is
+  /// "expected" yet, so everything it would otherwise flag as a leftover is
+  /// a candidate — but findOrphans is deliberately unfiltered (right for
+  /// orphan *detection*, where a hand-placed file matters too), so #85
+  /// narrows the result here rather than changing that walk: only
+  /// [audioExtensions] go to the server, not playlists Trobar itself wrote
+  /// or unrelated files the user put on the card by hand. Both because the
+  /// server doesn't need those paths, and because record_device_manifest's
+  /// `unmatched` count is a diagnostic someone reads after a recovery
+  /// didn't go as expected — inflated by non-audio files, it stops meaning
+  /// "Trobar files the server couldn't place".
+  Future<List<String>> collectManifestPaths() async {
+    final all = await findOrphans(
+        const ChangeSet(toDownload: [], toDelete: [], downloaded: []));
+    return [
+      for (final path in all)
+        if (audioExtensions.contains(p.extension(path).replaceFirst('.', '').toLowerCase()))
+          path
+    ];
+  }
 
   Future<void> deleteOrphans(List<String> relativePaths) async {
     for (final rel in relativePaths) {
