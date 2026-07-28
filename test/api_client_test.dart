@@ -46,4 +46,44 @@ void main() {
         httpClient: MockClient((req) async => http.Response('nope', 403)));
     expect(() => api.updateLimit(1), throwsA(isA<ApiException>()));
   });
+
+  test('setSourceOfTruth PATCHes /api/device/source-of-truth', () async {
+    http.Request? seen;
+    final api = ApiClient(config, httpClient: MockClient((req) async {
+      seen = req;
+      return http.Response('{"status":"ok"}', 200);
+    }));
+
+    await api.setSourceOfTruth('device');
+
+    expect(seen!.method, 'PATCH');
+    expect(seen!.url.path, '/api/device/source-of-truth');
+    expect(seen!.headers['Authorization'], 'Bearer t0k');
+    expect(jsonDecode(seen!.body), {'source_of_truth': 'device'});
+  });
+
+  test('postManifest POSTs the paths and returns matched/unmatched',
+      () async {
+    http.Request? seen;
+    final api = ApiClient(config, httpClient: MockClient((req) async {
+      seen = req;
+      return http.Response('{"matched":2,"unmatched":1}', 200);
+    }));
+
+    final result =
+        await api.postManifest(['A/1.mp3', 'A/2.mp3', 'A/unknown.mp3']);
+
+    expect(seen!.method, 'POST');
+    expect(seen!.url.path, '/api/device/manifest');
+    expect(jsonDecode(seen!.body),
+        {'paths': ['A/1.mp3', 'A/2.mp3', 'A/unknown.mp3']});
+    expect(result.matched, 2);
+    expect(result.unmatched, 1);
+  });
+
+  test('postManifest on a non-200 response throws ApiException', () async {
+    final api = ApiClient(config,
+        httpClient: MockClient((req) async => http.Response('nope', 400)));
+    expect(() => api.postManifest(['a']), throwsA(isA<ApiException>()));
+  });
 }
