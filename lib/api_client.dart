@@ -10,6 +10,11 @@ import 'package:http/http.dart' as http;
 
 import 'models.dart';
 
+/// #239/#80: matches the server's own _PROVENANCE_PUSH_MAX (main.py) —
+/// sending more than this in one POST is a 400, not a truncation, so the
+/// push loop in provenance.dart pages at exactly this cap.
+const provenancePushMax = 500;
+
 class ApiException implements Exception {
   final String message;
   ApiException(this.message);
@@ -65,6 +70,42 @@ class ApiClient {
 
   Future<ChangeSet> getChanges() async =>
       ChangeSet.fromJson(await _getJson('/api/device/changes'));
+
+  /// #239/#77: one page of this device's server-computed fingerprints,
+  /// cursor-paginated on ascending track_id — walk with `after =
+  /// page.nextAfter` until it's null (see provenance.dart). `limit` is
+  /// clamped server-side regardless of what's asked for here.
+  Future<FingerprintPage> getFingerprintsPage(int after,
+      {int limit = 200}) async {
+    final uri = _uri('/api/device/fingerprints').replace(queryParameters: {
+      'after': '$after',
+      'limit': '$limit',
+    });
+    final resp = await _http.get(uri, headers: _headers);
+    if (resp.statusCode != 200) {
+      throw ApiException('fingerprints — HTTP ${resp.statusCode}');
+    }
+    return FingerprintPage.fromJson(
+        jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>);
+  }
+
+  /// #239 PR2/#80: push this device's locally-held provenance back to the
+  /// server for recovery matching. At most [provenancePushMax] entries
+  /// per call — more is a 400, not a truncation (server-enforced,
+  /// all-or-nothing per page); paging is the caller's job (see
+  /// provenance.dart), this just sends what it's given.
+  Future<ProvenancePushResult> pushProvenance(
+      List<ProvenanceRecord> entries) async {
+    final resp = await _http.post(_uri('/api/device/provenance'),
+        headers: _headers,
+        body: jsonEncode(
+            {'entries': [for (final e in entries) e.toPushJson()]}));
+    if (resp.statusCode != 200) {
+      throw ApiException('provenance — HTTP ${resp.statusCode}');
+    }
+    return ProvenancePushResult.fromJson(
+        jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>);
+  }
 
   /// Streams the original file straight to [dest] (no buffering in memory —
   /// FLAC originals are large). Returns the byte count written.

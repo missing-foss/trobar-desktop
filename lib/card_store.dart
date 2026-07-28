@@ -15,12 +15,21 @@ import 'models.dart';
 const configDirName = '.trobar';
 const configFileName = 'device.json';
 const syncStateFileName = 'last_sync.json';
+// #239/#77: same reasoning as the pairing file above — this is per-device
+// identity (the server's own record of what this card's tracks are),
+// which the app itself keeps none of, so it rides with the card too.
+// sync_engine.dart's orphan scan already excludes the whole configDirName,
+// so this needs no exclusion of its own.
+const provenanceFileName = 'provenance.json';
 
 File configFileFor(Directory root) =>
     File(p.join(root.path, configDirName, configFileName));
 
 File syncStateFileFor(Directory root) =>
     File(p.join(root.path, configDirName, syncStateFileName));
+
+File provenanceFileFor(Directory root) =>
+    File(p.join(root.path, configDirName, provenanceFileName));
 
 /// The last sync's outcome, persisted alongside the pairing config so it
 /// travels with the card and shows on reopen (#20). Missing/corrupt → null.
@@ -65,6 +74,44 @@ Future<void> writeConfig(Directory root, DeviceConfig config) async {
   // defense-in-depth so it isn't world-readable on a shared machine. A no-op on
   // FAT/exFAT cards and on Windows; the portability model is unchanged. See
   // SECURITY.md.
+  if (!Platform.isWindows) {
+    try {
+      await Process.run('chmod', ['600', f.path]);
+    } catch (_) {
+      // FAT/exFAT or a restricted environment — best-effort only.
+    }
+  }
+}
+
+/// #77: this device's local provenance cache, keyed by track_id —
+/// missing/corrupt → empty map, never throws (same defensive handling as
+/// [readConfig]/[readSyncOutcome] above).
+Future<Map<int, ProvenanceRecord>> readProvenance(Directory root) async {
+  final f = provenanceFileFor(root);
+  if (!await f.exists()) return {};
+  try {
+    final json = jsonDecode(await f.readAsString()) as Map<String, dynamic>;
+    final list = json['entries'] as List? ?? [];
+    final out = <int, ProvenanceRecord>{};
+    for (final e in list) {
+      final record =
+          ProvenanceRecord.fromStoredJson(e as Map<String, dynamic>);
+      out[record.trackId] = record;
+    }
+    return out;
+  } catch (_) {
+    return {};
+  }
+}
+
+Future<void> writeProvenance(
+    Directory root, Map<int, ProvenanceRecord> entries) async {
+  final f = provenanceFileFor(root);
+  await f.parent.create(recursive: true);
+  final json = {
+    'entries': [for (final e in entries.values) e.toStoredJson()]
+  };
+  await f.writeAsString('${jsonEncode(json)}\n', flush: true);
   if (!Platform.isWindows) {
     try {
       await Process.run('chmod', ['600', f.path]);
