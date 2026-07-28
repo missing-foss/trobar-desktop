@@ -266,6 +266,17 @@ class SyncEngine {
     return orphans;
   }
 
+  /// #82: every file already on the card, as manifest-upload candidates for
+  /// a freshly (re-)paired device the server has no record of yet — most
+  /// commonly a card whose `.trobar/` was lost (metadata corruption, a
+  /// cleared hidden folder) while the music itself survived, forcing
+  /// re-enrollment under a brand-new device id. Reuses [findOrphans]' own
+  /// walk with an empty [ChangeSet]: nothing is "expected" yet, so
+  /// everything it would otherwise flag as a leftover is exactly the set
+  /// `POST /api/device/manifest` wants — what this card already holds.
+  Future<List<String>> collectManifestPaths() => findOrphans(
+      const ChangeSet(toDownload: [], toDelete: [], downloaded: []));
+
   Future<void> deleteOrphans(List<String> relativePaths) async {
     for (final rel in relativePaths) {
       File f;

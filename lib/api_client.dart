@@ -107,6 +107,30 @@ class ApiClient {
         jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>);
   }
 
+  /// #63/#82: tells the server this device won't be pruned for tracks no
+  /// selection currently requires (survives a server database loss).
+  /// Callers pair this with [postManifest], setting it FIRST — the
+  /// manifest match writes 'downloaded' rows directly, but only this
+  /// setting stops the next recompute from pruning them back out from
+  /// under a device that hasn't been assigned matching selections yet.
+  Future<void> setSourceOfTruth(String value) =>
+      _patchJson('/api/device/source-of-truth', {'source_of_truth': value});
+
+  /// #63/#82: a (re-)paired device reports the relative paths it already
+  /// holds — the same device_path() wire form [getChanges] speaks — and the
+  /// server matches them against the library, marking matches 'downloaded'
+  /// so they aren't re-fetched. See [setSourceOfTruth] for the ordering
+  /// this depends on.
+  Future<ManifestResult> postManifest(List<String> paths) async {
+    final resp = await _http.post(_uri('/api/device/manifest'),
+        headers: _headers, body: jsonEncode({'paths': paths}));
+    if (resp.statusCode != 200) {
+      throw ApiException('manifest — HTTP ${resp.statusCode}');
+    }
+    return ManifestResult.fromJson(
+        jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>);
+  }
+
   /// Streams the original file straight to [dest] (no buffering in memory —
   /// FLAC originals are large). Returns the byte count written.
   Future<int> downloadTrack(int trackId, File dest) async {

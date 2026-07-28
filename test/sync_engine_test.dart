@@ -203,6 +203,32 @@ void main() {
         isTrue);
   });
 
+  test('collectManifestPaths lists every file on the card, spares .trobar '
+      'and artist.jpg', () async {
+    for (final rel in [
+      'A/B/01 - One.flac',
+      'A/B/02 - Two.mp3',
+      'A/artist.jpg',
+      '.trobar/device.json',
+      '.trobar/provenance.json',
+    ]) {
+      final f = File(p.joinAll([card.path, ...rel.split('/')]));
+      await f.parent.create(recursive: true);
+      await f.writeAsBytes([1]);
+    }
+
+    final engine = SyncEngine(_client({}, []), card);
+    final held = await engine.collectManifestPaths();
+
+    expect(held, ['A/B/01 - One.flac', 'A/B/02 - Two.mp3']);
+  });
+
+  test('collectManifestPaths on a blank card returns an empty list',
+      () async {
+    final engine = SyncEngine(_client({}, []), card);
+    expect(await engine.collectManifestPaths(), isEmpty);
+  });
+
   test('playlists: writes, updates, stale-deletes managed, spares foreign',
       () async {
     final acks = <Map<String, dynamic>>[];

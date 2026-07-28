@@ -245,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
           MaterialPageRoute(builder: (_) => PairScreen(root: root)));
       if (saved != null && mounted) {
         await _rememberIfLocal(root);
-        if (mounted) _openCard(root, saved);
+        if (mounted) _openCard(root, saved, freshEnrollment: true);
       }
     }
   }
@@ -275,11 +275,15 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _openCard(Directory root, DeviceConfig config, {bool autoSync = false}) {
+  void _openCard(Directory root, DeviceConfig config,
+      {bool autoSync = false, bool freshEnrollment = false}) {
     Navigator.of(context)
         .push(MaterialPageRoute(
-            builder: (_) =>
-                CardScreen(root: root, config: config, autoSync: autoSync)))
+            builder: (_) => CardScreen(
+                root: root,
+                config: config,
+                autoSync: autoSync,
+                freshEnrollment: freshEnrollment)))
         .then((_) => _rescan());
   }
 
@@ -472,11 +476,17 @@ class CardScreen extends StatefulWidget {
   /// auto-opened on detection).
   final bool autoSync;
 
+  /// #82: this card was just paired for the first time this session (a
+  /// genuinely new pairing, or a re-enrollment under a new device id after
+  /// `.trobar/` was lost) — see _recoverIfFresh.
+  final bool freshEnrollment;
+
   const CardScreen({
     super.key,
     required this.root,
     required this.config,
     this.autoSync = false,
+    this.freshEnrollment = false,
   });
 
   @override
@@ -504,11 +514,43 @@ class _CardScreenState extends State<CardScreen> {
   @override
   void initState() {
     super.initState();
-    _load().then((_) {
+    _load().then((_) async {
+      // #82: before anything else gets a chance to sync/prune, tell the
+      // server what a freshly (re-)paired card already holds.
+      if (widget.freshEnrollment) await _recoverIfFresh();
       // Auto-sync on open (a detected-card insert), once the first load settled.
       if (widget.autoSync && mounted && !_syncing) _sync(unattended: true);
     });
     _restartInterval();
+  }
+
+  /// #82: a freshly (re-)paired card's device id is brand new to the
+  /// server, most commonly because `.trobar/` was lost (metadata
+  /// corruption, a cleared hidden folder) while the music itself survived.
+  /// Tell the server what's already here before the first sync, so
+  /// whatever selections end up assigned to this device — now or later —
+  /// don't trigger a needless re-download of files already on the card.
+  ///
+  /// source_of_truth='device' is set FIRST: it's what stops the very next
+  /// recompute from pruning the 'downloaded' rows the manifest is about to
+  /// write, for a device that hasn't been assigned matching selections yet.
+  /// A blank card (nothing found) skips both calls entirely — there's
+  /// nothing to protect, and no reason to flip this device to `device`-
+  /// sourced-of-truth clean.
+  ///
+  /// Best-effort, same as provenance sync in [_sync]: a network hiccup
+  /// here just means this one pairing doesn't get the re-download-avoidance
+  /// win, not a broken first sync.
+  Future<void> _recoverIfFresh() async {
+    try {
+      final engine = SyncEngine(_api, widget.root);
+      final held = await engine.collectManifestPaths();
+      if (held.isEmpty) return;
+      await _api.setSourceOfTruth('device');
+      await _api.postManifest(held);
+    } catch (_) {
+      // best-effort — try again next fresh pairing, this one just re-syncs.
+    }
   }
 
   /// (Re)start the while-open interval timer from the current pref (#23) —

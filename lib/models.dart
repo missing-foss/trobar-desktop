@@ -237,6 +237,22 @@ class ProvenancePushResult {
       );
 }
 
+/// #82: response to POST /api/device/manifest — how many of the paths this
+/// card already held were recognised against the library (`matched`, now
+/// marked 'downloaded' server-side) versus not (`unmatched`, content the
+/// server doesn't know about).
+class ManifestResult {
+  final int matched;
+  final int unmatched;
+
+  const ManifestResult({required this.matched, required this.unmatched});
+
+  factory ManifestResult.fromJson(Map<String, dynamic> json) => ManifestResult(
+        matched: json['matched'] as int? ?? 0,
+        unmatched: json['unmatched'] as int? ?? 0,
+      );
+}
+
 class ChangeSet {
   final List<TrackChange> toDownload;
   final List<TrackChange> toDelete;
