@@ -33,7 +33,55 @@ permissions:
   contents: read
 
 jobs:
+  # #91: runs BEFORE the builds. A tag that disagrees with pubspec.yaml is
+  # wrong no matter how green the builds are, and finding that out first is
+  # cheaper than a release page, a zip filename, and the app's own About
+  # screen (package_info_plus reads pubspec's version) all disagreeing with
+  # each other. Ported from garfin#8, adapted for this repo's `desktop-v*`
+  # prefix (garfin's is bare `v*`) with the missing-prefix case now a hard
+  # failure instead of the old "falls back to dev" behavior — a wrongly-
+  # prefixed tag (e.g. plain `v0.11.0`, the convention trobar-server and
+  # garfin both use) used to silently produce `trobar-desktop-dev-*.zip`
+  # uploads instead of refusing.
+  #
+  # Only runs when there's an actual tag to check: a real tag push, or a
+  # workflow_dispatch with `tag` set. The dispatch input's own description
+  # documents a THIRD mode — blank tag, for "just confirm the builds
+  # succeed" from an arbitrary branch — where there's no tag to compare
+  # against pubspec at all; skipping (not failing) here is what keeps that
+  # mode working. A skipped required job still satisfies `needs:` below.
+  version-check:
+    if: github.event_name == 'push' || inputs.tag != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Tag must match pubspec.yaml
+        run: |
+          ref="${{ inputs.tag }}"; [ -z "$ref" ] && ref="$GITHUB_REF_NAME"
+          case "$ref" in
+            desktop-v*) ;;
+            *) echo "::error::tag '$ref' does not start with 'desktop-v' — trobar-desktop uses desktop-vX.Y.Z, not bare vX.Y.Z"; exit 1 ;;
+          esac
+          tag_version="${ref#desktop-v}"
+          # pubspec is `version: X.Y.Z+BUILD`; compare the X.Y.Z part only.
+          pubspec_full=$(grep -m1 '^version:' pubspec.yaml | awk '{print $2}')
+          pubspec_version="${pubspec_full%%+*}"
+          echo "tag=$tag_version  pubspec=$pubspec_full"
+          if [ "$tag_version" != "$pubspec_version" ]; then
+            echo "::error::tag $ref implies version $tag_version but pubspec.yaml says $pubspec_version — bump pubspec or retag"
+            exit 1
+          fi
+          # Desktop has no versionCode, so a missing +BUILD suffix doesn't
+          # break update eligibility the way it would on Android — but the
+          # convention is already followed (0.10.0+11), so enforce it rather
+          # than let it silently lapse.
+          if [ -z "${pubspec_full##*+}" ] || [ "$pubspec_full" = "$pubspec_version" ]; then
+            echo "::error::pubspec version '$pubspec_full' has no +BUILD suffix"
+            exit 1
+          fi
+
   build-windows:
+    needs: [version-check]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -89,6 +137,7 @@ jobs:
           path: ${{ env.ASSET }}
 
   build-macos:
+    needs: [version-check]
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
