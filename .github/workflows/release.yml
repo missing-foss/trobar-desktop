@@ -48,8 +48,14 @@ jobs:
   # workflow_dispatch with `tag` set. The dispatch input's own description
   # documents a THIRD mode — blank tag, for "just confirm the builds
   # succeed" from an arbitrary branch — where there's no tag to compare
-  # against pubspec at all; skipping (not failing) here is what keeps that
-  # mode working. A skipped required job still satisfies `needs:` below.
+  # against pubspec at all; skipping (not failing) here is what's supposed
+  # to keep that mode working. On its own it does NOT: GitHub Actions
+  # propagates a skip through `needs:` to any dependent with no `if:` of
+  # its own, so build-windows/build-macos need their own explicit opt-out
+  # below — see their own comment (review caught this: the mode would
+  # otherwise silently skip too, reporting a clean run having built
+  # nothing, exactly the "reports success without checking what it
+  # claimed to" failure shape this whole job exists to close).
   version-check:
     if: github.event_name == 'push' || inputs.tag != ''
     runs-on: ubuntu-latest
@@ -82,6 +88,16 @@ jobs:
 
   build-windows:
     needs: [version-check]
+    # !cancelled() (not always()) so a real cancellation still stops this —
+    # only opts back in when version-check SUCCEEDED or was SKIPPED (the
+    # blank-tag "just build" mode), never when it actually FAILED. Bracket
+    # syntax on the job-name lookup is required, not stylistic:
+    # needs.version-check.result parses as `needs.version` MINUS
+    # `check.result` (`-` is the subtraction operator in Actions
+    # expressions), which fails quietly in the direction of never running
+    # this job — exactly the class of bug this condition exists to fix, so
+    # it would have been invisible without deliberately checking for it.
+    if: ${{ !cancelled() && needs['version-check'].result != 'failure' }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -138,6 +154,8 @@ jobs:
 
   build-macos:
     needs: [version-check]
+    # Same opt-out as build-windows above, same reasoning — see its comment.
+    if: ${{ !cancelled() && needs['version-check'].result != 'failure' }}
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
