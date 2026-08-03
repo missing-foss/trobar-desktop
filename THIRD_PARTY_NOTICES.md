@@ -35,7 +35,41 @@ Both are licensed under the SIL Open Font License, Version 1.1 — full text at 
 end of this file. The fonts ship unmodified; no reserved font name has been used
 for any modified version.
 
-Flutter's Material icons (Apache-2.0) are part of the Flutter distribution above.
+## Material icons font — CC BY 4.0
+
+`pubspec.yaml`'s `uses-material-design: true` bundles Flutter's Material icons
+font into every build. It is **CC BY 4.0, not Apache-2.0** (#90).
+
+Read from the artifact this repo's own Flutter toolchain actually ships, not
+from upstream documentation — `bin/cache/artifacts/material_fonts/
+MaterialIcons_LICENSE.txt`, whose first line is:
+
+```
+Attribution 4.0 International
+```
+
+It contains the canonical *Creative Commons Attribution 4.0 International
+Public License* text and no mention of Apache anywhere in its 18,531 bytes.
+The distinction matters: `google/material-design-icons` is Apache-2.0
+*today*, and Flutter's copy is generated from upstream at some past point,
+so assuming they match is exactly the kind of inference that goes stale —
+the icons were CC BY 4.0 before a 2016 relicence.
+
+> **This section is load-bearing.** Built this repo (`flutter build linux
+> --debug`) and searched the resulting `data/flutter_assets/NOTICES.Z` —
+> Flutter's own auto-generated licence collection mentioned two paragraphs
+> above — for the string `Attribution 4.0 International`. **Zero matches.**
+> Flutter's generated collection does not carry this attribution. CC BY 4.0
+> makes attribution a **condition of the licence**, so this file is where
+> Trobar desktop satisfies it. Don't delete it as redundant with
+> `LicenseRegistry`'s output; it isn't.
+>
+> No `LICENSES/CC-BY-4.0.txt` entry: the font is injected by the Flutter
+> toolchain at build time, not a file in this repository, so REUSE would
+> book the licence text as unused. Confirmed via `reuse lint`.
+
+Copyright Google, licensed under Creative Commons Attribution 4.0
+International (https://creativecommons.org/licenses/by/4.0/).
 
 ## Microsoft Visual C++ Redistributable (Windows only)
 
