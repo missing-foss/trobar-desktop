@@ -112,9 +112,7 @@ jobs:
           # and merging needs write. But the attestation must mean what it says.)
           #
           # Filtered on author_association rather than a login allowlist,
-          # deliberately: the review account's own name contains a string the
-          # repo's leak scan forbids in tracked files, so it cannot be written
-          # here. Association is also the more robust predicate — it says
+          # deliberately: association is the more robust predicate — it says
           # "somebody this repo trusts" rather than naming one account, so it
           # survives the reviewer changing. An arbitrary user is NONE, or
           # CONTRIBUTOR once they've had a PR merged; neither qualifies.

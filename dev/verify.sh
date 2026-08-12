@@ -45,20 +45,31 @@ else
   echo "ok"
 fi
 
-step "leak scan (household infra must never ship)"
+step "leak scan (strings that must never ship)"
+# Patterns come from two files: dev/forbidden-terms.txt, committed and shared
+# by every checkout, plus dev/forbidden-terms.local.txt, gitignored and
+# optional, for terms that only make sense on one machine. Both are stripped of
+# comments and blank lines before grep sees them — a `-f` list takes every line
+# as a pattern, and an empty one matches every file in the repo.
 # #404: `grep -f` on a missing terms file exits 2 (swallowed by 2>/dev/null
 # below), the `if` is then false, and this printed "ok" having scanned
 # nothing — fail-open, not fail-safe. `-s` catches missing AND empty in one
 # test, skipping the grep entirely so this doesn't ALSO scan (and pass)
 # against a pattern file with nothing in it.
+_terms=$(mktemp)
+cat dev/forbidden-terms.txt dev/forbidden-terms.local.txt 2>/dev/null \
+  | grep -vE '^[[:space:]]*(#|$)' > "$_terms"
 if [ ! -s dev/forbidden-terms.txt ]; then
   echo "LEAK: dev/forbidden-terms.txt missing or empty — scan did not run"; fail=1
-elif git ls-files | xargs grep -InE -f dev/forbidden-terms.txt 2>/dev/null \
+elif [ ! -s "$_terms" ]; then
+  echo "LEAK: no patterns left after stripping comments — scan did not run"; fail=1
+elif git ls-files | xargs grep -InE -f "$_terms" 2>/dev/null \
      | grep -viE "\.lock$|^dev/forbidden-terms\.txt:"; then
   echo "LEAK: forbidden term(s) above"; fail=1
 else
   echo "ok"
 fi
+rm -f "$_terms"
 
 step "gitleaks (secrets)"
 if command -v gitleaks >/dev/null 2>&1; then

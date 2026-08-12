@@ -1,3 +1,14 @@
-mphp
-renoir
-192\.168\.50
+# Patterns the leak scan in dev/verify.sh refuses to let into the tree.
+#
+# One extended regex (grep -E) per line; blank lines and #-comments are
+# skipped. Matching is case-insensitive, so write patterns in lower case,
+# and escape dots so `10.99` doesn't also match `10199`.
+#
+# Patterns that only make sense for one checkout — a hostname or subnet
+# you deploy on — belong in dev/forbidden-terms.local.txt instead. That
+# file is gitignored, optional, and read by the same scan when present,
+# which keeps this list meaningful for everyone.
+#
+# The two entries below are examples of the format, not real terms.
+internal\.example
+10\.99\.99\.
