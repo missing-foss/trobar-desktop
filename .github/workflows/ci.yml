@@ -35,12 +35,21 @@ jobs:
           if grep -q "\[" lib/l10n/untranslated.txt; then
             echo "::error::untranslated FR messages:"; cat lib/l10n/untranslated.txt; exit 1
           fi
-      - name: Leak scan (household infra must never ship)
+      - name: Leak scan (strings that must never ship)
         run: |
+          # Mirrors the leak scan in dev/verify.sh — keep the two in step.
+          # dev/forbidden-terms.local.txt is gitignored and normally absent
+          # here; the scan runs on the committed list alone when it is.
           # #404: a missing terms file makes `grep -f` exit 2, the `if` below
           # false, and the step green having scanned nothing — fail-open.
           [ -s dev/forbidden-terms.txt ] || { echo "::error::dev/forbidden-terms.txt missing or empty"; exit 1; }
-          if git ls-files | xargs grep -InE -f dev/forbidden-terms.txt \
+          # Strip comments and blank lines: `grep -f` reads every line as a
+          # pattern, and a blank one matches each line of each file scanned.
+          terms=$(mktemp)
+          cat dev/forbidden-terms.txt dev/forbidden-terms.local.txt 2>/dev/null \
+            | grep -vE '^[[:space:]]*(#|$)' > "$terms"
+          [ -s "$terms" ] || { echo "::error::no patterns left after stripping comments"; exit 1; }
+          if git ls-files | xargs grep -InE -f "$terms" \
                | grep -viE "\.lock$|^dev/forbidden-terms\.txt:"; then
             echo "::error::forbidden term(s) found above"; exit 1
           fi

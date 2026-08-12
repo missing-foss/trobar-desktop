@@ -63,8 +63,9 @@ precedence = "override"
 SPDX-FileCopyrightText = "2026 missing-foss"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
-# dev/forbidden-terms.txt is fed to grep -f as literal patterns, so no inline
-# header — a comment line would itself become a search pattern (#313).
+# dev/forbidden-terms.txt carries its own comment header explaining the format,
+# and an SPDX block on top of that would read as more preamble than content in a
+# file whose body is two lines of regex.
 [[annotations]]
 path = "dev/forbidden-terms.txt"
 precedence = "aggregate"
