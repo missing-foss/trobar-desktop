@@ -1,0 +1,216 @@
+# SPDX-FileCopyrightText: 2026 missing-foss
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Desktop release: builds Windows and macOS artifacts and publishes them to
+# the GitHub Release for a vX.Y.Z tag, alongside the Linux tarball
+# (which is still built and uploaded by hand — see packaging/package-linux.sh).
+#
+# Org Actions policy: GitHub-owned or verified-creator actions only.
+# subosito/flutter-action and the actions/* actions below qualify; actual
+# release creation and asset upload happens via `gh` in run: steps, not a
+# third-party release action.
+#
+# Windows/macOS builds are unsigned (no code-signing cert, no Apple
+# notarization — both paid, out of scope for this first pass). Users will
+# see an "unidentified developer" style OS warning; see README.
+name: release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing vX.Y.Z tag to (re)build and upload assets to (built from the selected branch's code). Leave blank for a plain build check."
+        type: string
+        required: false
+      publish:
+        description: "Create/update the GitHub Release and upload assets (leave off to just confirm the builds succeed)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  # #91: runs BEFORE the builds. A tag that disagrees with pubspec.yaml is
+  # wrong no matter how green the builds are, and finding that out first is
+  # cheaper than a release page, a zip filename, and the app's own About
+  # screen (package_info_plus reads pubspec's version) all disagreeing with
+  # each other.
+  #
+  # Tags are bare `vX.Y.Z` — the same convention across every repo here.
+  # A tag that does not start with `v` is a HARD FAILURE, replacing older
+  # behaviour that fell back to "dev": an unrecognised tag used to produce
+  # `trobar-desktop-dev-*.zip` uploads on a real release rather than
+  # refusing, which is the quiet-wrong-answer shape this job exists to
+  # close.
+  #
+  # Only runs when there's an actual tag to check: a real tag push, or a
+  # workflow_dispatch with `tag` set. The dispatch input's own description
+  # documents a THIRD mode — blank tag, for "just confirm the builds
+  # succeed" from an arbitrary branch — where there's no tag to compare
+  # against pubspec at all; skipping (not failing) here is what's supposed
+  # to keep that mode working. On its own it does NOT: GitHub Actions
+  # propagates a skip through `needs:` to any dependent with no `if:` of
+  # its own, so build-windows/build-macos need their own explicit opt-out
+  # below — see their own comment (review caught this: the mode would
+  # otherwise silently skip too, reporting a clean run having built
+  # nothing, exactly the "reports success without checking what it
+  # claimed to" failure shape this whole job exists to close).
+  version-check:
+    if: github.event_name == 'push' || inputs.tag != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Tag must match pubspec.yaml
+        run: |
+          ref="${{ inputs.tag }}"; [ -z "$ref" ] && ref="$GITHUB_REF_NAME"
+          case "$ref" in
+            v*) ;;
+            *) echo "::error::tag '$ref' does not start with 'v' — releases are tagged vX.Y.Z"; exit 1 ;;
+          esac
+          tag_version="${ref#v}"
+          # pubspec is `version: X.Y.Z+BUILD`; compare the X.Y.Z part only.
+          pubspec_full=$(grep -m1 '^version:' pubspec.yaml | awk '{print $2}')
+          pubspec_version="${pubspec_full%%+*}"
+          echo "tag=$tag_version  pubspec=$pubspec_full"
+          if [ "$tag_version" != "$pubspec_version" ]; then
+            echo "::error::tag $ref implies version $tag_version but pubspec.yaml says $pubspec_version — bump pubspec or retag"
+            exit 1
+          fi
+          # Desktop has no versionCode, so a missing +BUILD suffix doesn't
+          # break update eligibility the way it would on Android — but the
+          # convention is already followed (0.10.0+11), so enforce it rather
+          # than let it silently lapse.
+          if [ -z "${pubspec_full##*+}" ] || [ "$pubspec_full" = "$pubspec_version" ]; then
+            echo "::error::pubspec version '$pubspec_full' has no +BUILD suffix"
+            exit 1
+          fi
+
+  build-windows:
+    needs: [version-check]
+    # !cancelled() (not always()) so a real cancellation still stops this —
+    # only opts back in when version-check SUCCEEDED or was SKIPPED (the
+    # blank-tag "just build" mode), never when it actually FAILED. Bracket
+    # syntax on the job-name lookup is required, not stylistic:
+    # needs.version-check.result parses as `needs.version` MINUS
+    # `check.result` (`-` is the subtraction operator in Actions
+    # expressions), which fails quietly in the direction of never running
+    # this job — exactly the class of bug this condition exists to fix, so
+    # it would have been invisible without deliberately checking for it.
+    if: ${{ !cancelled() && needs['version-check'].result != 'failure' }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Read the pinned toolchain
+        id: tools
+        run: |
+          echo "flutter=$(awk '/^flutter /{print $2}' .tool-versions)" >> "$GITHUB_OUTPUT"
+        shell: bash
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ steps.tools.outputs.flutter }}
+      - run: flutter pub get
+      - run: flutter build windows --release
+      - name: Bundle VC++ runtime DLLs
+        # #63: `flutter build windows` links every release against the
+        # Visual C++ runtime, but that's not part of a base Windows
+        # install — it's only on this runner because Visual Studio is
+        # installed here. Without it, the zip fails to launch on a clean
+        # machine with "missing MSVCP140.dll" style dialogs. Bundling
+        # app-local is Microsoft-sanctioned redistribution and keeps the
+        # zip's unpack-and-run promise (same reasoning as Linux's
+        # documented libnotify dependency, see packaging/PLATFORM-NOTES.md).
+        # Globs edition/version rather than pinning a path, so a
+        # windows-latest image bump doesn't silently break this — and
+        # fails loudly if the DLLs aren't found, rather than shipping a
+        # silently-broken zip again.
+        shell: pwsh
+        run: |
+          $crtDir = Get-ChildItem "C:\Program Files*\Microsoft Visual Studio\*\*\VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT" `
+                      -Directory -ErrorAction SilentlyContinue |
+                    Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $crtDir) {
+            Write-Error "No Visual C++ Redistributable (Microsoft.VCxxx.CRT) directory found on this runner"
+            exit 1
+          }
+          $dlls = 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll'
+          foreach ($dll in $dlls) {
+            $src = Join-Path $crtDir.FullName $dll
+            if (-not (Test-Path $src)) {
+              Write-Error "Missing $dll under $($crtDir.FullName)"
+              exit 1
+            }
+          }
+          Copy-Item -Path ($dlls | ForEach-Object { Join-Path $crtDir.FullName $_ }) `
+                     -Destination "build\windows\x64\runner\Release\"
+      - name: Package zip
+        shell: pwsh
+        run: |
+          $ref = "${{ inputs.tag }}"; if (-not $ref) { $ref = "${{ github.ref_name }}" }
+          $version = $ref -replace '^v', ''
+          if (-not $version -or $version -eq $ref) { $version = "dev" }
+          $out = "trobar-desktop-$version-windows-x64.zip"
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath $out
+          echo "ASSET=$out" >> $env:GITHUB_ENV
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: windows-zip
+          path: ${{ env.ASSET }}
+
+  build-macos:
+    needs: [version-check]
+    # Same opt-out as build-windows above, same reasoning — see its comment.
+    if: ${{ !cancelled() && needs['version-check'].result != 'failure' }}
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Read the pinned toolchain
+        id: tools
+        run: |
+          echo "flutter=$(awk '/^flutter /{print $2}' .tool-versions)" >> "$GITHUB_OUTPUT"
+        shell: bash
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ steps.tools.outputs.flutter }}
+      - run: flutter pub get
+      - run: flutter build macos --release
+      - name: Package zip
+        run: |
+          ref="${{ inputs.tag }}"; [ -z "$ref" ] && ref="$GITHUB_REF_NAME"
+          version="${ref#v}"
+          if [ "$version" = "$ref" ]; then version="dev"; fi
+          out="trobar-desktop-$version-macos.zip"
+          # Glob the built .app rather than hard-coding a name: the macOS
+          # PRODUCT_NAME is "Trobar" (branding, #21), so the bundle is
+          # Trobar.app, not trobar_desktop.app. Fail loudly if it's missing.
+          app=$(ls -d build/macos/Build/Products/Release/*.app | head -1)
+          if [ -z "$app" ]; then echo "no .app found in Release/" >&2; exit 1; fi
+          ditto -c -k --keepParent "$app" "$out"
+          echo "ASSET=$out" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: macos-zip
+          path: ${{ env.ASSET }}
+
+  release:
+    needs: [build-windows, build-macos]
+    if: github.event_name == 'push' || inputs.publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: "*-zip"
+          merge-multiple: true
+      - name: Create or reuse release, upload assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+                 --title "$TAG" --generate-notes
+          gh release upload "$TAG" ./*.zip --repo "$GITHUB_REPOSITORY" --clobber

@@ -1,0 +1,54 @@
+# SPDX-FileCopyrightText: 2026 missing-foss
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Desktop CI: the pre-merge verify gate. Runs on every push/PR.
+# analyze + test only: engine tests run against temp dirs and a mocked API,
+# no GTK build deps needed. Read-only token, pinned majors.
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Read the pinned toolchain
+        id: tools
+        run: |
+          echo "flutter=$(awk '/^flutter /{print $2}' .tool-versions)" >> "$GITHUB_OUTPUT"
+          echo "java=$(awk '/^java /{print $2}' .tool-versions | sed 's/^temurin-//; s/+.*//')" >> "$GITHUB_OUTPUT"
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ steps.tools.outputs.flutter }}
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - name: Translations (FR ARB complete, #32)
+        # gen-l10n validates placeholder/ICU parity (errors on a mismatch) and
+        # lists untranslated keys in the untranslated-messages-file; a "[" in it
+        # means a key lacks its FR value, so the build fails instead of shipping
+        # an English fallback in French.
+        run: |
+          flutter gen-l10n
+          if grep -q "\[" lib/l10n/untranslated.txt; then
+            echo "::error::untranslated FR messages:"; cat lib/l10n/untranslated.txt; exit 1
+          fi
+      - name: Secret scan
+        # Binary download rather than gitleaks-action: the org Actions policy
+        # only allows GitHub-owned + verified-creator actions.
+        run: |
+          v=8.24.3
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${v}/gitleaks_${v}_linux_x64.tar.gz" | tar -xz gitleaks
+          ./gitleaks git --no-banner .
+      - name: REUSE lint (per-file SPDX licensing, #30)
+        # Python tool; the org Actions policy blocks fsfe/reuse-action, so run it
+        # via pipx (preinstalled on the runner). The charset-normalizer extra
+        # supplies reuse's encoding detection without needing libmagic.
+        run: pipx run --spec 'reuse[charset-normalizer]' reuse lint

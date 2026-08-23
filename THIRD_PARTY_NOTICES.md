@@ -1,0 +1,186 @@
+<!--
+SPDX-FileCopyrightText: 2026 missing-foss
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
+# Third-Party Notices — Trobar desktop
+
+Trobar desktop's own code is `GPL-3.0-or-later` (see `LICENSE`). The
+release tarballs additionally redistribute the components below, each
+under its own license.
+
+(Transcoding to MP3 is now done server-side, so no ffmpeg is bundled on any
+platform — #15.)
+
+## Flutter
+
+The application embeds the Flutter engine (BSD-3-Clause, Copyright 2014
+The Flutter Authors) and its Dart package dependencies. The complete,
+auto-generated license collection for all of them ships inside every build
+at `data/flutter_assets/NOTICES.Z` and is viewable programmatically via
+Flutter's LicenseRegistry.
+
+## Fonts — SIL Open Font License 1.1
+
+Two brand font families are bundled (`assets/fonts/*.ttf`) so the wordmark and
+UI text match the Android app and the web UI (#22):
+
+- **Fredoka** — Copyright 2016 The Fredoka Project Authors
+  (https://github.com/hafontia/Fredoka-One) — the "Trobar" wordmark.
+- **Space Grotesk** — Copyright 2020 The Space Grotesk Project Authors
+  (https://github.com/floriankarsten/space-grotesk) — the UI/body font.
+
+Both are licensed under the SIL Open Font License, Version 1.1 — full text at the
+end of this file. The fonts ship unmodified; no reserved font name has been used
+for any modified version.
+
+## Material icons font — CC BY 4.0
+
+`pubspec.yaml`'s `uses-material-design: true` bundles Flutter's Material icons
+font into every build. It is **CC BY 4.0, not Apache-2.0** (#90).
+
+Read from the artifact this repo's own Flutter toolchain actually ships, not
+from upstream documentation — `bin/cache/artifacts/material_fonts/
+MaterialIcons_LICENSE.txt`, whose first line is:
+
+```
+Attribution 4.0 International
+```
+
+It contains the canonical *Creative Commons Attribution 4.0 International
+Public License* text and no mention of Apache anywhere in its 18,531 bytes.
+The distinction matters: `google/material-design-icons` is Apache-2.0
+*today*, and Flutter's copy is generated from upstream at some past point,
+so assuming they match is exactly the kind of inference that goes stale —
+the icons were CC BY 4.0 before a 2016 relicence.
+
+> **This section is load-bearing.** Built this repo (`flutter build linux
+> --debug`) and searched the resulting `data/flutter_assets/NOTICES.Z` —
+> Flutter's own auto-generated licence collection mentioned two paragraphs
+> above — for the string `Attribution 4.0 International`. **Zero matches.**
+> Flutter's generated collection does not carry this attribution. CC BY 4.0
+> makes attribution a **condition of the licence**, so this file is where
+> Trobar desktop satisfies it. Don't delete it as redundant with
+> `LicenseRegistry`'s output; it isn't.
+>
+> No `LICENSES/CC-BY-4.0.txt` entry: the font is injected by the Flutter
+> toolchain at build time, not a file in this repository, so REUSE would
+> book the licence text as unused. Confirmed via `reuse lint`.
+
+Copyright Google, licensed under Creative Commons Attribution 4.0
+International (https://creativecommons.org/licenses/by/4.0/).
+
+## Microsoft Visual C++ Redistributable (Windows only)
+
+The Windows zip bundles three runtime DLLs from the Microsoft Visual C++
+Redistributable (`msvcp140.dll`, `vcruntime140.dll`, `vcruntime140_1.dll`) —
+Copyright Microsoft Corporation, redistributed app-local under the terms of
+the Visual Studio Redistributables license
+(https://visualstudio.microsoft.com/license-terms/vs2022-cruntime/). Every
+Flutter Windows release build links against this runtime; it isn't part of a
+base Windows install, so it ships alongside the app rather than requiring a
+separate installer (#63).
+
+## Artwork
+
+The bard artwork (`assets/logo_bard.png`) is original work, licensed with
+the repository.
+
+---
+
+## SIL Open Font License Version 1.1
+
+```
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+http://scripts.sil.org/OFL
+
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded,
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+"Font Software" refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+"Reserved Font Name" refers to any names specified as such after the
+copyright statement(s).
+
+"Original Version" refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+"Modified Version" refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+"Author" refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION & CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.
+```

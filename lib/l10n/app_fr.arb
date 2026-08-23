@@ -1,0 +1,147 @@
+{
+  "@@locale": "fr",
+  "noCardDetected": "Aucune carte associée détectée.",
+  "rescan": "Réanalyser",
+  "openFolder": "Ouvrir un dossier…",
+  "pairTitle": "Associer ce dossier",
+  "pairInstructions": "Dans l'application web, créez un appareil (type : carte SD) et téléchargez son fichier de configuration — puis collez son contenu ici. L'association est enregistrée sur la carte elle-même : tout ordinateur exécutant Trobar peut la synchroniser.",
+  "pairInvalidConfig": "Configuration d'appareil invalide (server_url + token attendus).",
+  "pairWriteFailed": "Écriture impossible dans {path} : {reason}",
+  "loadConfigFile": "Charger trobar-device.json…",
+  "pairButton": "Associer",
+  "freeOfTotal": "{free} Go libres sur {total} Go",
+  "missingTitle": "{count} morceau(x) introuvable(s) sur cette carte",
+  "missingBody": "Le serveur s'attendait à trouver ces fichiers ici. Les retélécharger, ou les laisser supprimés (ils ne seront pas re-proposés) ?",
+  "cancel": "Annuler",
+  "leaveDeleted": "Laisser supprimés",
+  "redownload": "Retélécharger",
+  "orphansTitle": "{count} fichier(s) sur cette carte ne sont pas gérés par Trobar",
+  "orphansBody": "Souvent des restes d'un changement de format — mais vos propres fichiers copiés à la main apparaissent aussi. Les supprimer ?\n\n{preview}",
+  "orphansMore": "… et {count} de plus",
+  "keep": "Garder",
+  "deleteThem": "Les supprimer",
+  "syncNow": "Synchroniser",
+  "syncing": "Synchronisation…",
+  "aboutTooltip": "À propos de Trobar",
+  "aboutTitle": "À propos",
+  "aboutVersion": "Version {version}",
+  "checkUpdates": "Vérifier les mises à jour",
+  "updateChecking": "Vérification…",
+  "updateAvailable": "Mise à jour disponible : {tag} — voir les versions publiées.",
+  "updateUpToDate": "Vous utilisez la dernière version ({version}).",
+  "updateCheckFailed": "Impossible de joindre GitHub ({error}) — réessayez plus tard.",
+  "donate": "Faire un don",
+  "aboutLinks": "Liens",
+  "aboutDocumentation": "Documentation",
+  "aboutSourceCode": "Code source",
+  "aboutReportIssue": "Signaler un problème ou proposer une fonctionnalité",
+  "aboutReleases": "Versions publiées",
+  "aboutLicenses": "Licences",
+  "aboutLicenseSummary": "Trobar desktop est un logiciel libre sous licence GNU GPL, version 3 ou ultérieure. Chaque bibliothèque intégrée conserve sa propre licence.",
+  "showThirdParty": "Afficher les licences",
+  "close": "Fermer",
+  "save": "Enregistrer",
+  "syncSummary": "Synchronisé : {downloaded} téléchargés, {removed} supprimés",
+  "@syncSummary": {
+    "placeholders": {
+      "downloaded": {
+        "type": "int"
+      },
+      "removed": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsTooltip": "Réglages",
+  "settingsTitle": "Réglages",
+  "settingsServerUrl": "URL du serveur",
+  "settingsServerUrlHelp": "Le serveur Trobar avec lequel cette carte se synchronise. Le jeton d'association est conservé.",
+  "settingsInvalidUrl": "Saisissez une URL de serveur http(s) valide.",
+  "settingsLanguage": "Langue",
+  "settingsLanguageSystem": "Système",
+  "settingsMissingPolicy": "Quand des fichiers manquent sur la carte",
+  "settingsMissingAsk": "Demander à chaque fois",
+  "settingsMissingRedownload": "Toujours retélécharger",
+  "settingsMissingExclude": "Toujours laisser supprimés",
+  "settingsStorageLimit": "Limite de stockage (Go)",
+  "settingsStorageLimitHelp": "Laisser vide pour aucune limite.",
+  "settingsInvalidLimit": "Saisissez un nombre entier de Go, ou laissez vide.",
+  "storageAllocated": "Alloué : {limit} Go",
+  "@storageAllocated": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "storageLimitExceedsFree": "Cette limite dépasse l'espace réellement disponible !",
+  "@aboutVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateAvailable": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateUpToDate": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateCheckFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "lastSync": "Dernière synchro : {when}",
+  "@lastSync": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "copyError": "Copier l'erreur",
+  "clearError": "Effacer",
+  "errorCopied": "Erreur copiée dans le presse-papiers",
+  "settingsAutoSyncOnDetect": "Synchroniser automatiquement à l'insertion d'une carte",
+  "settingsAutoSyncOnDetectHelp": "Quand l'application est ouverte et qu'une carte associée apparaît, la synchroniser sans demander.",
+  "settingsAutoSyncInterval": "Synchro auto quand une carte est ouverte",
+  "autoSyncOff": "Désactivé",
+  "autoSyncEveryMinutes": "Toutes les {minutes} min",
+  "@autoSyncEveryMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "autoSyncEveryHours": "Toutes les {hours} h",
+  "@autoSyncEveryHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "notifySyncComplete": "Synchronisation terminée",
+  "notifySyncFailed": "Échec de la synchronisation",
+  "duelTitle": "Défiez le barde",
+  "duelYourTurn": "À vous de jouer",
+  "duelBardThinking": "Le barde réfléchit…",
+  "duelYouWin": "Vous avez battu le barde !",
+  "duelBardWins": "Le barde gagne !",
+  "duelDraw": "Match nul !",
+  "duelPlayAgain": "Rejouer",
+  "duelHint": "Cliquez une colonne ou appuyez sur 1–7 pour jouer"
+}

@@ -1,0 +1,195 @@
+{
+  "@@locale": "en",
+  "noCardDetected": "No paired card detected.",
+  "rescan": "Rescan",
+  "openFolder": "Open folder…",
+  "pairTitle": "Pair this folder",
+  "pairInstructions": "In the web app, create a device (type: SD card) and download its config file — then paste its contents here. The pairing is stored on the card itself, so any computer running Trobar can sync it.",
+  "pairInvalidConfig": "Not a valid device config (expected server_url + token).",
+  "pairWriteFailed": "Could not write to {path}: {reason}",
+  "@pairWriteFailed": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "loadConfigFile": "Load trobar-device.json…",
+  "pairButton": "Pair",
+  "freeOfTotal": "{free} GB free of {total} GB",
+  "@freeOfTotal": {
+    "placeholders": {
+      "free": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "missingTitle": "{count} track(s) missing on this card",
+  "@missingTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "missingBody": "The server expected these files to be here. Re-download them, or leave them deleted (they will not be re-queued)?",
+  "cancel": "Cancel",
+  "leaveDeleted": "Leave deleted",
+  "redownload": "Re-download",
+  "orphansTitle": "{count} file(s) on this card are not managed by Trobar",
+  "@orphansTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "orphansBody": "Usually leftovers from a format change — but files you copied here yourself also show up. Delete them?\n\n{preview}",
+  "@orphansBody": {
+    "placeholders": {
+      "preview": {
+        "type": "String"
+      }
+    }
+  },
+  "orphansMore": "… and {count} more",
+  "@orphansMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "keep": "Keep",
+  "deleteThem": "Delete them",
+  "syncNow": "Sync now",
+  "syncing": "Syncing…",
+  "aboutTooltip": "About Trobar",
+  "aboutTitle": "About",
+  "aboutVersion": "Version {version}",
+  "checkUpdates": "Check for updates",
+  "updateChecking": "Checking…",
+  "updateAvailable": "Update available: {tag} — see Releases.",
+  "updateUpToDate": "You are running the latest release ({version}).",
+  "updateCheckFailed": "Could not reach GitHub ({error}) — try again later.",
+  "donate": "Donate",
+  "aboutLinks": "Links",
+  "aboutDocumentation": "Documentation",
+  "aboutSourceCode": "Source code",
+  "aboutReportIssue": "Report an issue or request a feature",
+  "aboutReleases": "Releases",
+  "aboutLicenses": "Licenses",
+  "aboutLicenseSummary": "Trobar desktop is free software under the GNU GPL, version 3 or later. Every bundled library keeps its own license.",
+  "showThirdParty": "Show licenses",
+  "close": "Close",
+  "save": "Save",
+  "syncSummary": "Synced: {downloaded} downloaded, {removed} removed",
+  "@syncSummary": {
+    "placeholders": {
+      "downloaded": {
+        "type": "int"
+      },
+      "removed": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsTooltip": "Settings",
+  "settingsTitle": "Settings",
+  "settingsServerUrl": "Server URL",
+  "settingsServerUrlHelp": "The Trobar server this card syncs with. The pairing token is kept.",
+  "settingsInvalidUrl": "Enter a valid http(s) server URL.",
+  "settingsLanguage": "Language",
+  "settingsLanguageSystem": "System",
+  "settingsMissingPolicy": "When files are missing on the card",
+  "settingsMissingAsk": "Ask each time",
+  "settingsMissingRedownload": "Always re-download",
+  "settingsMissingExclude": "Always leave deleted",
+  "settingsStorageLimit": "Storage limit (GB)",
+  "settingsStorageLimitHelp": "Leave empty for no limit.",
+  "settingsInvalidLimit": "Enter a whole number of GB, or leave empty.",
+  "storageAllocated": "Allocated: {limit} GB",
+  "@storageAllocated": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "storageLimitExceedsFree": "This limit exceeds the actual free space!",
+  "@aboutVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateAvailable": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateUpToDate": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateCheckFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "lastSync": "Last sync: {when}",
+  "@lastSync": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "copyError": "Copy error",
+  "clearError": "Clear",
+  "errorCopied": "Error copied to clipboard",
+  "settingsAutoSyncOnDetect": "Sync automatically when a card is inserted",
+  "settingsAutoSyncOnDetectHelp": "While this app is open and a paired card appears, sync it without asking.",
+  "settingsAutoSyncInterval": "Auto-sync while a card is open",
+  "autoSyncOff": "Off",
+  "autoSyncEveryMinutes": "Every {minutes} min",
+  "@autoSyncEveryMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "autoSyncEveryHours": "Every {hours} h",
+  "@autoSyncEveryHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "notifySyncComplete": "Sync complete",
+  "notifySyncFailed": "Sync failed",
+  "duelTitle": "Duel the bard",
+  "duelYourTurn": "Your turn",
+  "duelBardThinking": "The bard is thinking…",
+  "duelYouWin": "You beat the bard!",
+  "duelBardWins": "The bard wins!",
+  "duelDraw": "A draw!",
+  "duelPlayAgain": "Play again",
+  "duelHint": "Click a column or press 1–7 to drop"
+}
