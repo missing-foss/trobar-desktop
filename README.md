@@ -7,6 +7,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 # Trobar desktop
 
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/missing-foss/trobar-desktop/badge)](https://securityscorecards.dev/viewer/?uri=github.com/missing-foss/trobar-desktop)
+[![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-support-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/missingfoss)
 
 Flutter app (Linux / macOS / Windows) that syncs
 [Trobar](https://github.com/missing-foss/trobar-server) library selections
@@ -29,6 +30,8 @@ Grab the build for your OS from Releases (tags `vX.Y.Z`):
   Gatekeeper will refuse to open it until you right-click → Open (or allow
   it under System Settings → Privacy & Security). No code-signing
   cert / Apple notarization yet — both are paid, out of scope for now.
+  The macOS build isn't sandboxed, so that it can find your cards wherever
+  macOS mounts them.
 
 On older Linux distributions, or if you'd rather build it yourself, see
 Build below.
@@ -66,6 +69,12 @@ flutter build windows
 ```
 
 The UI is available in English and French (follows the system locale).
+
+## Support
+
+Trobar desktop is free software, like the rest of Trobar. If it keeps your cards in sync, you can [support Trobar on Ko-fi](https://ko-fi.com/missingfoss).
+
+Support pays for test devices, infrastructure and Claude. Mostly, it buys a good coffee and keeps the motivation going for the next projects.
 
 ## License
 

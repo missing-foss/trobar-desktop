@@ -11,7 +11,7 @@ release tarballs additionally redistribute the components below, each
 under its own license.
 
 (Transcoding to MP3 is now done server-side, so no ffmpeg is bundled on any
-platform — #15.)
+platform.)
 
 ## Flutter
 
@@ -24,7 +24,7 @@ Flutter's LicenseRegistry.
 ## Fonts — SIL Open Font License 1.1
 
 Two brand font families are bundled (`assets/fonts/*.ttf`) so the wordmark and
-UI text match the Android app and the web UI (#22):
+UI text match the Android app and the web UI:
 
 - **Fredoka** — Copyright 2016 The Fredoka Project Authors
   (https://github.com/hafontia/Fredoka-One) — the "Trobar" wordmark.
@@ -38,7 +38,7 @@ for any modified version.
 ## Material icons font — CC BY 4.0
 
 `pubspec.yaml`'s `uses-material-design: true` bundles Flutter's Material icons
-font into every build. It is **CC BY 4.0, not Apache-2.0** (#90).
+font into every build. It is **CC BY 4.0, not Apache-2.0**.
 
 Read from the artifact this repo's own Flutter toolchain actually ships, not
 from upstream documentation — `bin/cache/artifacts/material_fonts/
@@ -80,12 +80,14 @@ the Visual Studio Redistributables license
 (https://visualstudio.microsoft.com/license-terms/vs2022-cruntime/). Every
 Flutter Windows release build links against this runtime; it isn't part of a
 base Windows install, so it ships alongside the app rather than requiring a
-separate installer (#63).
+separate installer.
 
 ## Artwork
 
-The bard artwork (`assets/logo_bard.png`) is original work, licensed with
-the repository.
+The Trobar rosette (the mark in `assets/brand/` and `brand/`, and the app
+icons rendered from it) is original work, licensed with the repository. The
+theme previews' "Trobar" lettering (`assets/brand/lockup-*.svg`) is Fredoka,
+outlined to paths, under the SIL Open Font License above.
 
 ---
 

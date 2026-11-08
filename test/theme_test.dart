@@ -1,18 +1,22 @@
 // SPDX-FileCopyrightText: 2026 missing-foss
 // SPDX-License-Identifier: GPL-3.0-or-later
-// #19: the app follows the OS light/dark theme. brandInk() must adapt so the
-// light theme gets readable dark text instead of the (invisible) brand cream.
-// Pure build-time reads — no async, so this is reliable in flutter_test.
+// The brand themes: each one's derived scheme, light or dark; the dark-only
+// themes (Nuèch, Contraste) stay dark under a light system; brandInk follows
+// the theme; and an unknown stored key reads as Troubadour.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:trobar_desktop/main.dart' show brandCream, brandInk;
+import 'package:trobar_desktop/brand_tokens.dart';
+import 'package:trobar_desktop/main.dart' show brandInk, brandThemeData;
 
 void main() {
-  Future<Color> inkUnder(WidgetTester tester, Brightness brightness) async {
+  Future<Color> inkUnder(WidgetTester tester, BrandTheme brand, Brightness brightness) async {
     late Color ink;
+    // A fresh tree each time: MaterialApp animates a theme change, so the
+    // first frame after a re-pump would still show the previous theme.
     await tester.pumpWidget(MaterialApp(
-      theme: ThemeData(brightness: brightness),
+      key: UniqueKey(),
+      theme: brandThemeData(brand, brightness),
       home: Builder(builder: (context) {
         ink = brandInk(context);
         return const SizedBox();
@@ -21,14 +25,33 @@ void main() {
     return ink;
   }
 
-  testWidgets('brandInk is the brand cream on the dark theme', (tester) async {
-    expect(await inkUnder(tester, Brightness.dark), brandCream);
+  testWidgets('brandInk is light on a dark theme and dark on a light one', (tester) async {
+    for (final t in BrandTheme.values) {
+      final dark = await inkUnder(tester, t, Brightness.dark);
+      expect(dark.computeLuminance() > 0.5, isTrue, reason: '$t dark');
+      if (!t.darkOnly) {
+        final light = await inkUnder(tester, t, Brightness.light);
+        expect(light.computeLuminance() < 0.5, isTrue, reason: '$t light');
+      }
+    }
   });
 
-  testWidgets('brandInk is a dark, readable colour on the light theme',
-      (tester) async {
-    final ink = await inkUnder(tester, Brightness.light);
-    expect(ink, isNot(brandCream)); // not the invisible cream
-    expect(ink.computeLuminance() < 0.5, isTrue); // dark ink on a light surface
+  test('a dark-only theme is dark whatever the brightness asked for', () {
+    for (final t in [BrandTheme.nuech, BrandTheme.contraste]) {
+      expect(brandColorScheme(t, Brightness.light).brightness, Brightness.dark);
+      expect(brandBackground(t, Brightness.light), brandBackground(t, Brightness.dark));
+    }
+    expect(brandColorScheme(BrandTheme.garriga, Brightness.light).brightness, Brightness.light);
+  });
+
+  test('Troubadour keeps the burgundy it had', () {
+    expect(brandColorScheme(BrandTheme.troubadour, Brightness.light).primary, const Color(0xFFA83250));
+    expect(brandBackground(BrandTheme.troubadour, Brightness.dark), const Color(0xFF100E08));
+  });
+
+  test('an unknown stored key is Troubadour', () {
+    expect(BrandTheme.of('bard'), BrandTheme.troubadour);
+    expect(BrandTheme.of(null), BrandTheme.troubadour);
+    expect(BrandTheme.of('peira'), BrandTheme.peira);
   });
 }

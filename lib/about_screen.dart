@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 missing-foss
 // SPDX-License-Identifier: GPL-3.0-or-later
-// About screen: version, links, licenses, donate. The update
+// About screen: version, links, licenses, support. The update
 // check is user-initiated only — one GitHub API call per button press,
 // never automatic (the app otherwise talks to nothing but your server).
 
@@ -13,13 +13,18 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'connect_four_dialog.dart';
 import 'l10n/gen/app_localizations.dart';
-import 'main.dart' show brandInk, brandRose;
+import 'main.dart' show brandInk;
+import 'syncing_logo.dart';
 
 const _repoUrl = 'https://github.com/missing-foss/trobar-desktop';
 const _docsUrl = 'https://missing-foss.github.io/trobar-server/';
 
 class AboutScreen extends StatefulWidget {
-  const AboutScreen({super.key});
+  const AboutScreen({super.key, this.openUrl});
+
+  /// How a link opens: the browser (url_launcher) by default. A test passes
+  /// its own to see where a button goes.
+  final void Function(Uri url)? openUrl;
 
   @override
   State<AboutScreen> createState() => _AboutScreenState();
@@ -30,7 +35,7 @@ class _AboutScreenState extends State<AboutScreen> {
   bool _checking = false;
   String? _updateStatus;
   bool _updateAvailable = false;
-  int _logoTaps = 0; // #25: 5 taps on the bard reveals the easter egg.
+  int _logoTaps = 0; // #25: 5 taps on the mark reveals the easter egg.
 
   void _onLogoTap() {
     if (++_logoTaps >= 5) {
@@ -84,10 +89,19 @@ class _AboutScreenState extends State<AboutScreen> {
     }
   }
 
+  void _open(Uri url) {
+    final open = widget.openUrl;
+    if (open != null) {
+      open(url);
+    } else {
+      launchUrl(url);
+    }
+  }
+
   Widget _link(IconData icon, String label, String url) => ListTile(
         leading: Icon(icon),
         title: Text(label),
-        onTap: () => launchUrl(Uri.parse(url)),
+        onTap: () => _open(Uri.parse(url)),
       );
 
   @override
@@ -101,11 +115,11 @@ class _AboutScreenState extends State<AboutScreen> {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              // #25: five taps on the bard opens the "duel the bard" easter egg.
+              // #25: five taps on the mark opens the "duel the bard" easter egg.
               Center(
                 child: GestureDetector(
                   onTap: _onLogoTap,
-                  child: Image.asset('assets/logo_bard.png', width: 140),
+                  child: const TrobarMark(size: 140),
                 ),
               ),
               const SizedBox(height: 8),
@@ -127,7 +141,8 @@ class _AboutScreenState extends State<AboutScreen> {
                           .headlineSmall
                           ?.copyWith(
                               fontFamily: 'Fredoka', // #22: wordmark font
-                              color: brandRose, fontWeight: FontWeight.w600)),
+                              color: Theme.of(context).colorScheme.secondary,
+                              fontWeight: FontWeight.w600)),
                 ])),
               ),
               Center(
@@ -145,17 +160,22 @@ class _AboutScreenState extends State<AboutScreen> {
                     onPressed: _checking ? null : _checkUpdates,
                     child: Text(l.checkUpdates),
                   ),
-                  // Liberapay brand yellow — a vendored "button", no external
-                  // widget script (a deliberate no-CDN choice).
+                  // In the app's own theme: no Ko-fi logo, image or colour.
                   FilledButton(
-                    onPressed: () => launchUrl(
-                        Uri.parse('https://liberapay.com/Trobar/donate')),
-                    style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFF6C915),
-                        foregroundColor: const Color(0xFF1A171B)),
-                    child: Text(l.donate),
+                    onPressed: () =>
+                        _open(Uri.parse('https://ko-fi.com/missingfoss')),
+                    child: Text(l.supportOnKofi),
                   ),
                 ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(l.supportNote,
+                    key: const Key('supportNote'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: brandInk(context).withValues(alpha: .7))),
               ),
               if (_updateStatus != null)
                 Padding(
@@ -165,7 +185,7 @@ class _AboutScreenState extends State<AboutScreen> {
                         style: TextStyle(
                             fontSize: 13,
                             color: _updateAvailable
-                                ? brandRose
+                                ? Theme.of(context).colorScheme.secondary
                                 : brandInk(context).withValues(alpha: .7))),
                   ),
                 ),

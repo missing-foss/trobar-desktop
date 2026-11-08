@@ -2,9 +2,14 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Desktop release: builds Windows and macOS artifacts and publishes them to
-# the GitHub Release for a vX.Y.Z tag, alongside the Linux tarball
-# (which is still built and uploaded by hand — see packaging/package-linux.sh).
+# Desktop release: builds the Windows, macOS and Linux artifacts and attaches
+# them to a DRAFT GitHub Release for a vX.Y.Z tag. Nothing here publishes: a
+# human reviews the draft and publishes it. All three build here since
+# 2026-08-23: the Linux tarball used to be built and uploaded by hand, but a
+# runner build from the public tree removes that hand-off entirely, and the
+# 24.04 runner links an older glibc floor than the box that built it by hand,
+# so the tarball runs on more systems, not fewer. packaging/package-linux.sh
+# is unchanged and still works standalone.
 #
 # Org Actions policy: GitHub-owned or verified-creator actions only.
 # subosito/flutter-action and the actions/* actions below qualify; actual
@@ -25,7 +30,7 @@ on:
         type: string
         required: false
       publish:
-        description: "Create/update the GitHub Release and upload assets (leave off to just confirm the builds succeed)"
+        description: "Create or update the draft release and upload assets (leave off to just confirm the builds succeed)"
         type: boolean
         default: false
 
@@ -64,8 +69,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Tag must match pubspec.yaml
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
-          ref="${{ inputs.tag }}"; [ -z "$ref" ] && ref="$GITHUB_REF_NAME"
+          ref="$INPUT_TAG"; [ -z "$ref" ] && ref="$GITHUB_REF_NAME"
           case "$ref" in
             v*) ;;
             *) echo "::error::tag '$ref' does not start with 'v' — releases are tagged vX.Y.Z"; exit 1 ;;
@@ -88,8 +95,14 @@ jobs:
             exit 1
           fi
 
+  # #30: the same gate a pull request meets, on the commit being released,
+  # before any bundle is built. No `needs`, so it runs in every mode, the
+  # blank-tag build check included.
+  gates:
+    uses: ./.github/workflows/ci.yml
+
   build-windows:
-    needs: [version-check]
+    needs: [version-check, gates]
     # !cancelled() (not always()) so a real cancellation still stops this —
     # only opts back in when version-check SUCCEEDED or was SKIPPED (the
     # blank-tag "just build" mode), never when it actually FAILED. Bracket
@@ -99,7 +112,7 @@ jobs:
     # expressions), which fails quietly in the direction of never running
     # this job — exactly the class of bug this condition exists to fix, so
     # it would have been invisible without deliberately checking for it.
-    if: ${{ !cancelled() && needs['version-check'].result != 'failure' }}
+    if: ${{ !cancelled() && needs['version-check'].result != 'failure' && needs.gates.result == 'success' }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -147,22 +160,24 @@ jobs:
                      -Destination "build\windows\x64\runner\Release\"
       - name: Package zip
         shell: pwsh
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
-          $ref = "${{ inputs.tag }}"; if (-not $ref) { $ref = "${{ github.ref_name }}" }
+          $ref = $env:INPUT_TAG; if (-not $ref) { $ref = $env:GITHUB_REF_NAME }
           $version = $ref -replace '^v', ''
           if (-not $version -or $version -eq $ref) { $version = "dev" }
           $out = "trobar-desktop-$version-windows-x64.zip"
           Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath $out
           echo "ASSET=$out" >> $env:GITHUB_ENV
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: windows-zip
           path: ${{ env.ASSET }}
 
   build-macos:
-    needs: [version-check]
+    needs: [version-check, gates]
     # Same opt-out as build-windows above, same reasoning — see its comment.
-    if: ${{ !cancelled() && needs['version-check'].result != 'failure' }}
+    if: ${{ !cancelled() && needs['version-check'].result != 'failure' && needs.gates.result == 'success' }}
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -177,8 +192,10 @@ jobs:
       - run: flutter pub get
       - run: flutter build macos --release
       - name: Package zip
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
-          ref="${{ inputs.tag }}"; [ -z "$ref" ] && ref="$GITHUB_REF_NAME"
+          ref="$INPUT_TAG"; [ -z "$ref" ] && ref="$GITHUB_REF_NAME"
           version="${ref#v}"
           if [ "$version" = "$ref" ]; then version="dev"; fi
           out="trobar-desktop-$version-macos.zip"
@@ -189,28 +206,84 @@ jobs:
           if [ -z "$app" ]; then echo "no .app found in Release/" >&2; exit 1; fi
           ditto -c -k --keepParent "$app" "$out"
           echo "ASSET=$out" >> "$GITHUB_ENV"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: macos-zip
           path: ${{ env.ASSET }}
 
+  build-linux:
+    needs: [version-check, gates]
+    # Same opt-out as build-windows above, same reasoning — see its comment.
+    if: ${{ !cancelled() && needs['version-check'].result != 'failure' && needs.gates.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Install the Linux desktop build deps
+        # libnotify-dev is the one package-linux.sh checks for itself
+        # (local_notifier links it); the rest are Flutter's standard Linux
+        # toolchain. Explicit rather than trusting the runner image, so an
+        # image update cannot silently change what this build links.
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -qy clang cmake ninja-build pkg-config libgtk-3-dev libnotify-dev
+      - name: Read the pinned toolchain
+        id: tools
+        run: |
+          echo "flutter=$(awk '/^flutter /{print $2}' .tool-versions)" >> "$GITHUB_OUTPUT"
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ steps.tools.outputs.flutter }}
+      - run: flutter pub get
+      - name: Build and package
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          ref="$INPUT_TAG"; [ -z "$ref" ] && ref="$GITHUB_REF_NAME"
+          version="${ref#v}"
+          if [ "$version" = "$ref" ]; then version="dev"; fi
+          packaging/package-linux.sh "$version"
+          echo "ASSET=trobar-desktop-$version-linux-x64.tar.gz" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: linux-tarball
+          path: ${{ env.ASSET }}
+
   release:
-    needs: [build-windows, build-macos]
+    needs: [build-windows, build-macos, build-linux]
     if: github.event_name == 'push' || inputs.publish
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          pattern: "*-zip"
+          # No pattern: every artifact this run produced (the two zips and the
+          # tarball) lands flat in the working directory.
           merge-multiple: true
-      - name: Create or reuse release, upload assets
+      - name: Create or reuse the draft release, upload assets
+        # The release is created as a draft and stays one: publishing is a
+        # human step. A re-run uploads into the existing draft (--clobber
+        # replaces same-named archives). A release that is already published
+        # is refused rather than updated, so a re-run can never swap the
+        # archives under a release people may already have downloaded.
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
-            || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
-                 --title "$TAG" --generate-notes
-          gh release upload "$TAG" ./*.zip --repo "$GITHUB_REPOSITORY" --clobber
+          if is_draft=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2>/dev/null); then
+            if [ "$is_draft" != "true" ]; then
+              echo "::error::release $TAG is already published; this workflow only fills drafts, so it is leaving it alone"
+              exit 1
+            fi
+            echo "draft release $TAG exists; uploading into it"
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "$TAG" --draft --generate-notes
+          fi
+          gh release upload "$TAG" ./*.zip ./*.tar.gz --repo "$GITHUB_REPOSITORY" --clobber
+          cat >> "$GITHUB_STEP_SUMMARY" <<SUMMARY
+          ### $TAG: draft release with archives attached
+
+          Nothing is published by this workflow. The draft is the handoff
+          point, reviewed and published by a human.
+          SUMMARY

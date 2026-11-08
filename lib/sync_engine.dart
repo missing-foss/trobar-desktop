@@ -7,18 +7,20 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
 import 'api_client.dart';
 import 'card_store.dart';
 import 'models.dart';
 
-/// #85: kept aligned with trobar-android's SyncEngine.kt AUDIO_EXTENSIONS
-/// — both clients talk to the same server-side matcher, so the two lists
-/// drifting apart would silently change what "an audio file" means
-/// per-client. Update both together if this ever changes.
+/// #85: kept aligned with trobar-android's AUDIO_FILE_EXTENSIONS
+/// (FolderScan.kt) — both clients talk to the same server-side matcher, so
+/// the two lists drifting apart would silently change what "an audio file"
+/// means per-client. Update both together if this ever changes. The server
+/// scans the same formats; ALAC lives in .m4a (there is no .alac extension).
 const audioExtensions = {
-  'flac', 'mp3', 'm4a', 'ogg', 'opus', 'wav', 'aac', 'alac',
+  'flac', 'wav', 'aiff', 'aif', 'mp3', 'm4a', 'ogg', 'opus', 'aac',
 };
 
 class SyncProgress {
@@ -32,14 +34,46 @@ class SyncResult {
   final int downloadedCount;
   final int deletedCount;
   final int playlistCount;
+
+  /// Playlists made on the device and sent to the server this sync.
+  final int devicePlaylistCount;
+
+  /// Entries of those playlists the server matched to no track in the
+  /// library; they wait in the web app's unknown-tracks review.
+  final int deviceUnknownEntries;
   final String? firstError;
+
+  /// Set when downloads didn't start because the card can't hold them: at
+  /// least `needed` bytes against `free`. The caller words it.
+  final ({int needed, int free})? notEnoughSpace;
+
+  /// Set when the card filled up during a download; the remaining
+  /// downloads were not tried.
+  final bool diskFull;
+
+  /// Set when the caller stopped the sync: what was downloaded stays, the
+  /// track in progress was dropped, and nothing after the downloads ran.
+  final bool cancelled;
 
   const SyncResult({
     this.downloadedCount = 0,
     this.deletedCount = 0,
     this.playlistCount = 0,
+    this.devicePlaylistCount = 0,
+    this.deviceUnknownEntries = 0,
     this.firstError,
+    this.notEnoughSpace,
+    this.diskFull = false,
+    this.cancelled = false,
   });
+}
+
+/// "No space left on device": ENOSPC on Linux and macOS (28), and
+/// ERROR_HANDLE_DISK_FULL (39) or ERROR_DISK_FULL (112) on Windows.
+bool isDiskFull(Object e) {
+  final code = e is FileSystemException ? e.osError?.errorCode : null;
+  if (code == null) return false;
+  return Platform.isWindows ? (code == 39 || code == 112) : code == 28;
 }
 
 /// Thrown when a server-supplied path would resolve outside the sync root — a
@@ -65,7 +99,73 @@ class SyncEngine {
   /// device-level artist pictures: null = off, 'small'/'full'.
   final String? artistImages;
 
-  SyncEngine(this.api, this.root, {this.artistImages});
+  /// How a playlist file on the card is read: [File.readAsBytes], unless a
+  /// test needs a read that fails whoever the process runs as.
+  final Future<List<int>> Function(File) readFile;
+
+  /// The card's free space, [volumeSpace] unless a test supplies its own.
+  final Future<({int free, int total})?> Function(Directory) space;
+
+  /// How a download waits before trying again; tests don't wait.
+  final Future<void> Function(Duration) wait;
+
+  /// Tries per track, the first included, before it counts as failed.
+  static const downloadAttempts = 3;
+
+  SyncEngine(this.api, this.root,
+      {this.artistImages,
+      Future<List<int>> Function(File)? readFile,
+      Future<({int free, int total})?> Function(Directory)? space,
+      Future<void> Function(Duration)? wait})
+      : readFile = readFile ?? ((f) => f.readAsBytes()),
+        space = space ?? volumeSpace,
+        wait = wait ?? ((d) => Future<void>.delayed(d));
+
+  /// Worth another try: the server failing (5xx, its "busy transcoding" 503
+  /// included), or the connection dropping or stalling. A refusal (4xx) or
+  /// a full card is not.
+  static bool _retryable(Object e) => e is ApiException
+      ? e.statusCode == null || e.statusCode! >= 500
+      : e is http.ClientException || e is SocketException || e is HttpException;
+
+  /// One track into [part], tried up to [downloadAttempts] times. An
+  /// original resumes from what an earlier try in this same run wrote; a
+  /// transcoded track, encoded afresh for each request, starts over. The
+  /// wait between tries is what the server asked for, or a few seconds,
+  /// never over a minute.
+  ///
+  /// A [part] already there before the first try is left by a run that
+  /// didn't finish (a crash, an unplugged card) and is deleted, not
+  /// resumed: the file may have changed on the server since, and a bare
+  /// Range would join the old file's head to the new one's tail, at the
+  /// right length, with nothing to show for it.
+  Future<int> _download(TrackChange t, File part, bool Function()? isCancelled) async {
+    if (await part.exists()) await part.delete();
+    for (var attempt = 1;; attempt++) {
+      final have = attempt > 1 && !t.transcode && await part.exists()
+          ? await part.length()
+          : 0;
+      try {
+        return await api.downloadTrack(t.trackId, part,
+            resumeFrom: have, cancelled: isCancelled);
+      } catch (e) {
+        if (e is ApiException && e.statusCode == 416) {
+          // The part no longer fits the file (it changed on the server):
+          // drop it and fetch the whole file.
+          await part.delete();
+          if (attempt < downloadAttempts) continue;
+        }
+        if (attempt >= downloadAttempts || !_retryable(e)) rethrow;
+        final asked = e is ApiException ? e.retryAfter : null;
+        final delay = asked ?? Duration(seconds: 2 * attempt);
+        await wait(delay > const Duration(minutes: 1)
+            ? const Duration(minutes: 1)
+            : delay);
+        // A stop asked for during the wait is honoured before the next try.
+        if (isCancelled?.call() ?? false) throw SyncCancelled();
+      }
+    }
+  }
 
   /// Join a server-supplied relative path under [root], REJECTING anything
   /// that would escape it (#11). Throws [UnsafePathException] on an absolute
@@ -112,8 +212,13 @@ class SyncEngine {
     return missing;
   }
 
+  /// [isCancelled] is asked before each track and while one downloads
+  /// (see [ApiClient.downloadTrack]): once it answers true the sync stops
+  /// there, keeps what it downloaded, drops the track in progress, and
+  /// skips what comes after the downloads.
   Future<SyncResult> run(ChangeSet changes,
-      {void Function(SyncProgress)? onProgress}) async {
+      {void Function(SyncProgress)? onProgress,
+      bool Function()? isCancelled}) async {
     var downloaded = 0;
     var deleted = 0;
     String? firstError;
@@ -130,9 +235,32 @@ class SyncEngine {
       }
     }
 
-    final total = changes.toDownload.length;
+    // Before any download, and after the deletions above have freed what
+    // they free: a card that can't hold even the untranscoded tracks of
+    // known size is reported as such, instead of every download failing on
+    // it in turn. Only those count, so this never refuses a sync that
+    // would fit; a transcoded track's final size isn't known in advance.
+    // No figure (an unsupported platform) means no check.
+    final needed = changes.toDownload
+        .where((t) => !t.transcode)
+        .fold<int>(0, (sum, t) => sum + (t.size ?? 0));
+    final before = needed > 0 ? await space(root) : null;
+    final notEnoughSpace = before != null && needed > before.free
+        ? (needed: needed, free: before.free)
+        : null;
+    var diskFull = false;
+
+    final queue =
+        notEnoughSpace == null ? changes.toDownload : const <TrackChange>[];
+    final total = queue.length;
     var done = 0;
-    for (final t in changes.toDownload) {
+    var cancelled = false;
+    for (final t in queue) {
+      if (diskFull) break;
+      if (isCancelled?.call() ?? false) {
+        cancelled = true;
+        break;
+      }
       done++;
       onProgress?.call(SyncProgress(done, total, t.relativePath));
       try {
@@ -144,7 +272,7 @@ class SyncEngine {
         await dest.parent.create(recursive: true);
         final part = File('${dest.path}.part');
         try {
-          final bytes = await api.downloadTrack(t.trackId, part);
+          final bytes = await _download(t, part, isCancelled);
           await part.rename(dest.path);
           await api.ack(t.trackId, 'downloaded', bytesOnDevice: bytes);
           downloaded++;
@@ -153,25 +281,59 @@ class SyncEngine {
           rethrow;
         }
       } catch (e) {
-        firstError ??= '${t.relativePath}: $e';
+        if (e is SyncCancelled) {
+          cancelled = true;
+          break;
+        }
+        if (isDiskFull(e)) {
+          // Every later download would fail the same way.
+          diskFull = true;
+        } else {
+          firstError ??= '${t.relativePath}: $e';
+        }
       }
+    }
+
+    // Asked once more after the loop, so a stop is seen even when there was
+    // nothing to download and the loop never ran.
+    if (!cancelled && (isCancelled?.call() ?? false)) cancelled = true;
+    if (cancelled) {
+      return SyncResult(
+          downloadedCount: downloaded,
+          deletedCount: deleted,
+          firstError: firstError,
+          cancelled: true);
     }
 
     var playlistCount = 0;
     try {
       playlistCount = await _writePlaylists(changes.playlists);
     } catch (e) {
-      firstError ??= 'playlists: \$e';
+      firstError ??= 'playlists: $e';
+    }
+
+    // After the write, so the set read here is the card as it now stands.
+    var devicePlaylistCount = 0;
+    var deviceUnknownEntries = 0;
+    try {
+      final own = await collectUserPlaylists();
+      final read = await api.postDevicePlaylists(own);
+      if (read != null) {
+        devicePlaylistCount = own.length;
+        deviceUnknownEntries = read.unknown;
+      }
+    } catch (e) {
+      firstError ??= 'device playlists: $e';
     }
 
     if (artistImages == 'small' || artistImages == 'full') {
       await _downloadArtistImages(small: artistImages == 'small');
     }
 
-    final space = await volumeSpace(root);
-    if (space != null) {
+    final after = await space(root);
+    if (after != null) {
       try {
-        await api.reportStorage(freeBytes: space.free, totalBytes: space.total);
+        await api.reportStorage(freeBytes: after.free, totalBytes: after.total);
       } catch (_) {
         // decorative — a failed storage report never fails the sync
       }
@@ -181,7 +343,11 @@ class SyncEngine {
       downloadedCount: downloaded,
       deletedCount: deleted,
       playlistCount: playlistCount,
+      devicePlaylistCount: devicePlaylistCount,
+      deviceUnknownEntries: deviceUnknownEntries,
       firstError: firstError,
+      notEnoughSpace: notEnoughSpace,
+      diskFull: diskFull,
     );
   }
 
@@ -226,6 +392,9 @@ class SyncEngine {
       expected.add(pl.filename);
       final current =
           await f.exists() ? await f.readAsString() : null;
+      // A playlist the person made, under the same name: theirs stays, and
+      // the Trobar one isn't written this sync.
+      if (current != null && !_isTrobarManaged(current)) continue;
       if (current != pl.content) {
         await f.writeAsString(pl.content, flush: true);
       }
@@ -248,9 +417,74 @@ class SyncEngine {
     return written;
   }
 
+  static bool _isTrobarManaged(String text) {
+    final lines = const LineSplitter().convert(text); // a BOM only touches line 1
+    return lines.length > 1 && lines[1].trim() == m3uMarker;
+  }
+
+  static const _playlistExtensions = {'.m3u', '.m3u8'};
+
+  /// Whether [file] is one of Trobar's own playlists. One that can't be read
+  /// counts as the user's: never offered for deletion on a guess.
+  Future<bool> _isTrobarPlaylist(File file) async {
+    try {
+      return _isTrobarManaged(_decode(await readFile(file)));
+    } on FileSystemException {
+      return false;
+    }
+  }
+
+  /// Every playlist on the card a person made: .m3u and .m3u8 files,
+  /// except those whose second line is [m3uMarker] (Trobar's own, the same
+  /// line the server's .m3u reader checks), and except anything under a
+  /// name starting with a dot: `.trobar/`, hidden folders, and the `._`
+  /// files macOS writes beside every file on a FAT or exFAT card. Entries
+  /// are the non-blank, non-comment lines, as written; the server resolves
+  /// them. A file that isn't valid UTF-8 is read as Latin-1, the usual
+  /// encoding of an older .m3u.
+  ///
+  /// All or nothing: the server removes any playlist missing from an
+  /// upload, so a file that can't be read throws, rather than being left
+  /// out and its playlist deleted with its settings and mirrors.
+  Future<List<DevicePlaylist>> collectUserPlaylists() async {
+    final found = <DevicePlaylist>[];
+    await for (final e in root.list(recursive: true, followLinks: false)) {
+      if (e is! File) continue;
+      if (!_playlistExtensions.contains(p.extension(e.path).toLowerCase())) continue;
+      final parts = p.split(p.relative(e.path, from: root.path));
+      if (parts.any((part) => part.startsWith('.'))) continue;
+      final String text;
+      try {
+        text = _decode(await readFile(e));
+      } on FileSystemException catch (err) {
+        throw FileSystemException(
+            "can't read ${parts.join('/')}, so no playlists were sent this sync", err.path, err.osError);
+      }
+      if (_isTrobarManaged(text)) continue;
+      found.add(DevicePlaylist(path: parts.join('/'), entries: [
+        // trim() also drops a BOM on the first line.
+        for (final line in const LineSplitter().convert(text))
+          if (line.trim().isNotEmpty && !line.trim().startsWith('#')) line.trim()
+      ]));
+    }
+    found.sort((a, b) => a.path.compareTo(b.path));
+    return found;
+  }
+
+  static String _decode(List<int> bytes) {
+    try {
+      return utf8.decode(bytes);
+    } on FormatException {
+      return latin1.decode(bytes);
+    }
+  }
+
   /// Files on the card no current track claims: old-extension leftovers
   /// after a transcode-format change, stray.part files, or
-  /// anything else. `.trobar/` is never considered. Detection only — the
+  /// anything else. `.trobar/` is never considered, and neither is a
+  /// playlist the user made on the card ([collectUserPlaylists] uploads it
+  /// as theirs; offering to delete it straight after would undo that).
+  /// Only Trobar's own playlist files can be leftovers. Detection only — the
   /// UI confirms with the user before [deleteOrphans]; a DAP card may
   /// legitimately hold music the user put there by hand.
   Future<List<String>> findOrphans(ChangeSet changes) async {
@@ -268,7 +502,12 @@ class SyncEngine {
       // and a hand-placed one is deliberate either way.
       if (parts.last == 'artist.jpg') continue;
       final rel = parts.join('/');
-      if (!expected.contains(rel)) orphans.add(rel);
+      if (expected.contains(rel)) continue;
+      if (_playlistExtensions.contains(p.extension(e.path).toLowerCase()) &&
+          !await _isTrobarPlaylist(e)) {
+        continue;
+      }
+      orphans.add(rel);
     }
     orphans.sort();
     return orphans;

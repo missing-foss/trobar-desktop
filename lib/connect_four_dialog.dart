@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'brand_notifier.dart';
 import 'connect_four.dart';
 import 'l10n/gen/app_localizations.dart';
 
@@ -64,13 +65,17 @@ class _ConnectFourDialogState extends State<ConnectFourDialog> {
     }
   }
 
+  // The two coins are the mark's own pair, the theme's disc and dot: they
+  // differ in every theme, where primary and dot are the same gold in Nuèch
+  // and Contraste.
   Color _discColor(BuildContext context, int cell) {
     final scheme = Theme.of(context).colorScheme;
+    final brand = TrobarBrand.of(context);
     switch (cell) {
       case cfHuman:
-        return scheme.primary;
+        return brand.disc;
       case cfBard:
-        return const Color(0xFFF6C915); // the bard's "coin" gold
+        return brand.dot;
       default:
         return scheme.surfaceContainerHighest;
     }

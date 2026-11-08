@@ -34,11 +34,22 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk)"
 SPDX-License-Identifier = "OFL-1.1"
 
+# --- The theme previews: each theme's lockup, whose "Trobar" is Fredoka
+# outlined to paths ------------------------------------------------------------
+[[annotations]]
+path = "assets/brand/lockup-*.svg"
+precedence = "override"
+SPDX-FileCopyrightText = ["2026 missing-foss", "2016 The Fredoka Project Authors"]
+SPDX-License-Identifier = "GPL-3.0-or-later AND OFL-1.1"
+
 # --- First-party brand artwork / icons (override the Flutter-scaffolding
 # entry above for the icon files that live under macos/ and windows/) --------
 [[annotations]]
 path = [
-  "assets/logo_bard.png",
+  "brand/trobar-themes.json",
+  "brand/trobar-mark-troubadour.svg",
+  "assets/brand/trobar-mark-themable.svg",
+  "packaging/icons/*.png",
   "macos/Runner/Assets.xcassets/AppIcon.appiconset/*.png",
   "windows/runner/resources/app_icon.ico",
 ]
@@ -55,6 +66,7 @@ path = [
   "lib/l10n/app_fr.arb",
   "lib/l10n/gen/**",
   "pubspec.lock",
+  "renovate.json",
   ".metadata",
   "**/.gitignore",
   "packaging/org.missing_foss.trobar_desktop.desktop",

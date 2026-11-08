@@ -43,7 +43,7 @@ cp "$HERE/LICENSE" "$STAGE/licenses/LICENSE"
 # layout; install.sh wires them into the user's ~/.local at install time.
 mkdir -p "$STAGE/share/applications" "$STAGE/share/icons/hicolor/512x512/apps"
 cp "$HERE/packaging/org.missing_foss.trobar_desktop.desktop" "$STAGE/share/applications/"
-cp "$HERE/assets/logo_bard.png" "$STAGE/share/icons/hicolor/512x512/apps/org.missing_foss.trobar_desktop.png"
+cp "$HERE/packaging/icons/org.missing_foss.trobar_desktop.png" "$STAGE/share/icons/hicolor/512x512/apps/org.missing_foss.trobar_desktop.png"
 cp "$HERE/packaging/install-linux.sh" "$STAGE/install.sh"
 chmod +x "$STAGE/install.sh"
 

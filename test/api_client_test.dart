@@ -41,6 +41,16 @@ void main() {
     expect(jsonDecode(seen!.body), {'max_size_bytes': null});
   });
 
+  test('an ApiException carries the status the server answered', () async {
+    final api = ApiClient(config,
+        httpClient: MockClient((req) async => http.Response('', 401)));
+    await expectLater(
+        api.getInfo(),
+        throwsA(isA<ApiException>()
+            .having((e) => e.statusCode, 'statusCode', 401)
+            .having((e) => e.isRevoked, 'isRevoked', isTrue)));
+  });
+
   test('a non-200 response throws ApiException', () async {
     final api = ApiClient(config,
         httpClient: MockClient((req) async => http.Response('nope', 403)));

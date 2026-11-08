@@ -5,12 +5,15 @@
 // any machine running this app and it syncs as the right device. The app
 // itself keeps no per-device state.
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path/path.dart' as p;
 
 import 'models.dart';
+import 'windows_volume.dart';
 
 const configDirName = '.trobar';
 const configFileName = 'device.json';
@@ -154,7 +157,16 @@ Future<void> writeProvenance(
 /// convenience for auto-detection — any folder can be picked manually.
 List<Directory> _candidateRoots() {
   if (Platform.isLinux) {
-    final user = Platform.environment['USER'] ?? '';
+    final env = Platform.environment;
+    String? passwd;
+    if (env['PKEXEC_UID'] != null) {
+      try {
+        passwd = File('/etc/passwd').readAsStringSync();
+      } on FileSystemException {
+        // no passwd to read: fall back to USER
+      }
+    }
+    final user = linuxMountUser(env, passwd: passwd);
     return [Directory('/media/$user'), Directory('/run/media/$user')];
   }
   if (Platform.isMacOS) return [Directory('/Volumes')];
@@ -167,10 +179,57 @@ List<Directory> _candidateRoots() {
   return [];
 }
 
-/// Every mounted volume carrying a Trobar pairing file.
-Future<List<(Directory, DeviceConfig)>> discoverCards() async {
+/// Whose removable volumes to look for on Linux: they mount under
+/// `/media/NAME` for the desktop user. Under sudo or pkexec USER is root, so
+/// the invoking user is taken from SUDO_USER, or PKEXEC_UID looked up in
+/// [passwd] (the text of /etc/passwd).
+@visibleForTesting
+String linuxMountUser(Map<String, String> env, {String? passwd}) {
+  final sudoUser = env['SUDO_USER'];
+  if (sudoUser != null && sudoUser.isNotEmpty) return sudoUser;
+  final uid = env['PKEXEC_UID'];
+  if (uid != null && passwd != null) {
+    for (final line in const LineSplitter().convert(passwd)) {
+      final fields = line.split(':');
+      if (fields.length > 2 && fields[2] == uid) return fields[0];
+    }
+  }
+  return env['USER'] ?? '';
+}
+
+/// How long one folder may take to answer before the scan moves on without
+/// it: a remembered folder on an unmounted network share can leave even
+/// `exists()` waiting, and the whole scan with it.
+const scanPathTimeout = Duration(seconds: 5);
+
+Future<DeviceConfig?> _probe(Directory dir) async {
+  if (!await dir.exists()) return null;
+  return readConfig(dir);
+}
+
+/// [dir]'s pairing, or null when it has none, can't be read, or doesn't
+/// answer within [timeout].
+Future<DeviceConfig?> _probeTimed(Directory dir, Duration timeout,
+    Future<DeviceConfig?> Function(Directory) probe) async {
+  try {
+    return await probe(dir).timeout(timeout);
+  } on FileSystemException {
+    return null; // unreadable (empty drive letter, permissions)
+  } on TimeoutException {
+    return null; // not answering (an unmounted network share)
+  }
+}
+
+/// The mount roots removable volumes show up under (macOS, Linux), or the
+/// drive letters themselves (Windows).
+List<Directory> mountRoots() => _candidateRoots();
+
+/// Every mounted volume carrying a Trobar pairing file. [only] limits a
+/// Windows scan to those drive roots: the ones the OS just said arrived.
+Future<List<(Directory, DeviceConfig)>> discoverCards(
+    {List<Directory>? only}) async {
   final found = <(Directory, DeviceConfig)>[];
-  for (final parent in _candidateRoots()) {
+  for (final parent in only ?? _candidateRoots()) {
     // Windows: the drive letters themselves are the volumes; elsewhere the
     // volumes are the children of the mount root.
     final volumes = <Directory>[];
@@ -182,13 +241,13 @@ Future<List<(Directory, DeviceConfig)>> discoverCards() async {
         if (e is Directory) volumes.add(e);
       }
     }
-    for (final vol in volumes) {
-      try {
-        final config = await readConfig(vol);
-        if (config != null) found.add((vol, config));
-      } on FileSystemException {
-        // unreadable volume (empty drive letter, permissions) — skip
-      }
+    // All at once, so one volume that doesn't answer costs one timeout,
+    // not one each.
+    final configs = await Future.wait(
+        volumes.map((vol) => _probeTimed(vol, scanPathTimeout, readConfig)));
+    for (var i = 0; i < volumes.length; i++) {
+      final config = configs[i];
+      if (config != null) found.add((volumes[i], config));
     }
   }
   return found;
@@ -201,32 +260,34 @@ Future<List<(Directory, DeviceConfig)>> discoverCards() async {
 /// or whose pairing file is gone/corrupt, is silently dropped rather than
 /// erroring — same "just fall off the list" handling AppPrefs' own
 /// out-of-range values get, and it mirrors discoverCards()' own per-volume
-/// try/catch.
+/// try/catch. A path that doesn't answer within [timeout] is dropped too,
+/// and the paths are probed together, so it holds up the scan once.
 Future<List<(Directory, DeviceConfig)>> discoverLocalFolders(
-    List<String> paths) async {
-  final found = <(Directory, DeviceConfig)>[];
-  for (final path in paths) {
-    final dir = Directory(path);
-    try {
-      if (!await dir.exists()) continue;
-      final config = await readConfig(dir);
-      if (config != null) found.add((dir, config));
-    } on FileSystemException {
-      // unreadable (permissions, unmounted network share) — drop silently
-    }
-  }
-  return found;
+    List<String> paths,
+    {Duration timeout = scanPathTimeout,
+    @visibleForTesting
+    Future<DeviceConfig?> Function(Directory) probe = _probe}) async {
+  final dirs = [for (final path in paths) Directory(path)];
+  final configs =
+      await Future.wait(dirs.map((dir) => _probeTimed(dir, timeout, probe)));
+  return [
+    for (var i = 0; i < dirs.length; i++)
+      if (configs[i] != null) (dirs[i], configs[i]!)
+  ];
 }
 
 /// True if [dir] sits under one of this platform's removable-volume mount
 /// conventions (the same roots discoverCards() scans) — i.e. it's something
 /// you'd expect to be able to unplug, as opposed to a folder picked by hand
-/// anywhere else on the machine (#66). A path-prefix heuristic, same
-/// precision discoverCards() itself already relies on — not a guarantee (a
-/// fixed Windows drive letter matches too, same as discoverCards() already
-/// doesn't distinguish fixed from removable there).
+/// anywhere else on the machine (#66). On Linux and macOS a path-prefix
+/// heuristic, the same precision discoverCards() itself relies on, not a
+/// guarantee. On Windows it asks the system: only a drive root that
+/// GetDriveTypeW reports as removable counts (windowsTargetIsRemovable).
 bool isRemovable(Directory dir) {
   final target = p.normalize(dir.absolute.path);
+  if (Platform.isWindows) {
+    return windowsTargetIsRemovable(target, windowsDriveType);
+  }
   for (final root in _candidateRoots()) {
     final rootPath = p.normalize(root.absolute.path);
     if (p.equals(target, rootPath) || p.isWithin(rootPath, target)) {
@@ -234,6 +295,17 @@ bool isRemovable(Directory dir) {
     }
   }
   return false;
+}
+
+/// On Windows, what is removable is a drive, not a folder on it: [target]
+/// counts only when it is a drive root itself (`E:\`) and Windows reports
+/// that drive as removable media. Any folder below a root, `C:\Users\…`
+/// included, is local.
+@visibleForTesting
+bool windowsTargetIsRemovable(
+    String target, int Function(String root) driveType) {
+  final root = RegExp(r'^[A-Za-z]:\\$');
+  return root.hasMatch(target) && driveType(target) == driveRemovable;
 }
 
 /// The icon-relevant kind of a sync target (#66). `local` is free and always
@@ -357,20 +429,37 @@ Future<TargetKind> _probeWindows(Directory dir) async {
 
 /// Free/total bytes of the filesystem holding [root] — reported to the
 /// server so the web UI can sanity-check the device's storage limit.
-/// Uses `df` on Linux/macOS; unsupported elsewhere (returns null).
+/// Uses `df` on Linux/macOS and `GetDiskFreeSpaceExW` on Windows; null
+/// elsewhere, or when the volume can't say.
 Future<({int free, int total})?> volumeSpace(Directory root) async {
+  if (Platform.isWindows) {
+    try {
+      return windowsVolumeSpace(root.path);
+    } catch (_) {
+      return null;
+    }
+  }
   if (!Platform.isLinux && !Platform.isMacOS) return null;
   try {
     final result = await Process.run('df', ['-kP', root.path]);
     if (result.exitCode != 0) return null;
-    final lines = (result.stdout as String).trim().split('\n');
-    if (lines.length < 2) return null;
-    final cols = lines.last.split(RegExp(r'\s+'));
-    // df -P: Filesystem 1024-blocks Used Available Capacity Mounted-on
-    final total = int.parse(cols[1]) * 1024;
-    final free = int.parse(cols[3]) * 1024;
-    return (free: free, total: total);
+    return parseDfOutput(result.stdout as String);
   } catch (_) {
     return null;
   }
+}
+
+/// Free and total bytes from `df -kP` output, or null when it isn't that
+/// shape. POSIX columns: Filesystem 1024-blocks Used Available Capacity
+/// Mounted-on. The last line is the one for the path asked about; a mount
+/// point with spaces only lengthens the last column, which isn't read.
+({int free, int total})? parseDfOutput(String stdout) {
+  final lines = stdout.trim().split('\n');
+  if (lines.length < 2) return null;
+  final cols = lines.last.trim().split(RegExp(r'\s+'));
+  if (cols.length < 6) return null;
+  final total = int.tryParse(cols[1]);
+  final free = int.tryParse(cols[3]);
+  if (total == null || free == null) return null;
+  return (free: free * 1024, total: total * 1024);
 }

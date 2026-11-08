@@ -2,14 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>com.apple.security.app-sandbox</key>
-	<true/>
 	<key>com.apple.security.cs.allow-jit</key>
 	<true/>
 	<key>com.apple.security.network.server</key>
 	<true/>
-	<!-- #52: outbound HTTP to the Trobar server. Inert on the current unsigned
-	     builds (sandbox not enforced), required once code-signed. -->
+	<!-- Outbound HTTP to the Trobar server. Only the App Sandbox enforces it,
+	     and the direct-download build isn't sandboxed (it has to reach cards
+	     and folders wherever they are mounted); kept for a sandboxed App
+	     Store build, which would need it. -->
 	<key>com.apple.security.network.client</key>
 	<true/>
 </dict>

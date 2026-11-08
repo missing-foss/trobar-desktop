@@ -4,8 +4,8 @@
   "rescan": "Rescan",
   "openFolder": "Open folder…",
   "pairTitle": "Pair this folder",
-  "pairInstructions": "In the web app, create a device (type: SD card) and download its config file — then paste its contents here. The pairing is stored on the card itself, so any computer running Trobar can sync it.",
-  "pairInvalidConfig": "Not a valid device config (expected server_url + token).",
+  "pairInstructions": "In the web app, get a pairing code for this device (for one that already exists: Devices → Re-pair in app), then enter the server URL and the 8-character code below. The pairing is stored on the card itself, so any computer running Trobar can sync it.",
+  "pairInvalidConfig": "Not a valid device config (expected server_url with token or enroll_code).",
   "pairWriteFailed": "Could not write to {path}: {reason}",
   "@pairWriteFailed": {
     "placeholders": {
@@ -19,6 +19,42 @@
   },
   "loadConfigFile": "Load trobar-device.json…",
   "pairButton": "Pair",
+  "pairServerUrlLabel": "Server URL",
+  "pairCodeLabel": "Pairing code",
+  "pairNameLabel": "Device name",
+  "pairNameHelp": "Used for a new device. Re-pairing keeps the name the device already has.",
+  "pairConfigHeading": "Or paste a device config, or load its file",
+  "pairConfigButton": "Pair with config",
+  "pairMissingServer": "Enter the server URL.",
+  "pairBadServerUrl": "The server URL must start with https:// or http://.",
+  "pairMissingName": "Enter a device name.",
+  "pairInvalidCode": "That isn't a pairing code: it's 8 letters and digits.",
+  "pairCodeRejected": "Invalid or expired code. Get a fresh one in the web app.",
+  "pairRateLimited": "Too many attempts. Wait a few minutes and try again.",
+  "pairNetworkError": "Couldn't reach the server: {reason}",
+  "@pairNetworkError": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "pairFailed": "Pairing failed: {reason}",
+  "@pairFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "pairedAs": "Paired as {name}",
+  "@pairedAs": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "freeOfTotal": "{free} GB free of {total} GB",
   "@freeOfTotal": {
     "placeholders": {
@@ -30,7 +66,7 @@
       }
     }
   },
-  "missingTitle": "{count} track(s) missing on this card",
+  "missingTitle": "{count, plural, one{{count} track missing on this card} other{{count} tracks missing on this card}}",
   "@missingTitle": {
     "placeholders": {
       "count": {
@@ -42,7 +78,7 @@
   "cancel": "Cancel",
   "leaveDeleted": "Leave deleted",
   "redownload": "Re-download",
-  "orphansTitle": "{count} file(s) on this card are not managed by Trobar",
+  "orphansTitle": "{count, plural, one{{count} file on this card is not managed by Trobar} other{{count} files on this card are not managed by Trobar}}",
   "@orphansTitle": {
     "placeholders": {
       "count": {
@@ -50,24 +86,7 @@
       }
     }
   },
-  "orphansBody": "Usually leftovers from a format change — but files you copied here yourself also show up. Delete them?\n\n{preview}",
-  "@orphansBody": {
-    "placeholders": {
-      "preview": {
-        "type": "String"
-      }
-    }
-  },
-  "orphansMore": "… and {count} more",
-  "@orphansMore": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "keep": "Keep",
-  "deleteThem": "Delete them",
   "syncNow": "Sync now",
   "syncing": "Syncing…",
   "aboutTooltip": "About Trobar",
@@ -78,7 +97,20 @@
   "updateAvailable": "Update available: {tag} — see Releases.",
   "updateUpToDate": "You are running the latest release ({version}).",
   "updateCheckFailed": "Could not reach GitHub ({error}) — try again later.",
-  "donate": "Donate",
+  "supportOnKofi": "Support on Ko-fi",
+  "supportNote": "Support pays for test devices, infrastructure and Claude. Mostly, it buys a good coffee and keeps the motivation going for the next projects.",
+  "thanksCardThank": "Thank",
+  "thanksCardYou": "you",
+  "thanksCardSynced": "Trobar has synced {count} times for you.",
+  "@thanksCardSynced": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "thanksCardCoffee": "If it's useful, a coffee helps.",
+  "dismiss": "Dismiss",
   "aboutLinks": "Links",
   "aboutDocumentation": "Documentation",
   "aboutSourceCode": "Source code",
@@ -107,6 +139,12 @@
   "settingsInvalidUrl": "Enter a valid http(s) server URL.",
   "settingsLanguage": "Language",
   "settingsLanguageSystem": "System",
+  "settingsTheme": "Theme",
+  "brandThemeTroubadour": "Default · cream",
+  "brandThemeNuech": "Night · dark only",
+  "brandThemeGarriga": "Sage · olive",
+  "brandThemePeira": "Stone · terracotta",
+  "brandThemeContraste": "High contrast · dark only",
   "settingsMissingPolicy": "When files are missing on the card",
   "settingsMissingAsk": "Ask each time",
   "settingsMissingRedownload": "Always re-download",
@@ -184,6 +222,42 @@
   },
   "notifySyncComplete": "Sync complete",
   "notifySyncFailed": "Sync failed",
+  "syncStop": "Stop sync",
+  "syncStopping": "Stopping…",
+  "syncStopped": "Sync stopped: {downloaded} downloaded before it stopped. The rest comes with the next sync.",
+  "@syncStopped": {
+    "placeholders": {
+      "downloaded": {
+        "type": "int"
+      }
+    }
+  },
+  "leaveDuringSyncTitle": "A sync is running",
+  "leaveDuringSyncBody": "Stop it and leave? What's already downloaded stays on the card; the rest comes with the next sync.",
+  "keepSyncing": "Keep syncing",
+  "stopAndLeave": "Stop and leave",
+  "pairingRevoked": "The server no longer accepts this card's pairing: the device was removed or paired again elsewhere. Pair this card again to keep syncing it.",
+  "pairAgain": "Pair this card again",
+  "recoveryFailed": "Couldn't tell the server what this card already holds; this is tried again the next time the card is opened. ({reason})",
+  "@recoveryFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "syncNotEnoughSpace": "Not enough space on the card: these downloads need at least {needed} GB, and {free} GB is free. Nothing was downloaded; free some space, or lower what is selected for this device.",
+  "@syncNotEnoughSpace": {
+    "placeholders": {
+      "needed": {
+        "type": "String"
+      },
+      "free": {
+        "type": "String"
+      }
+    }
+  },
+  "syncCardFull": "The card filled up during the sync. What fit is on it; free some space, or lower what is selected for this device, and sync again.",
   "duelTitle": "Duel the bard",
   "duelYourTurn": "Your turn",
   "duelBardThinking": "The bard is thinking…",
@@ -191,5 +265,51 @@
   "duelBardWins": "The bard wins!",
   "duelDraw": "A draw!",
   "duelPlayAgain": "Play again",
-  "duelHint": "Click a column or press 1–7 to drop"
+  "duelHint": "Click a column or press 1–7 to drop",
+  "syncPlaylists": "{written, plural, one{{written} playlist written} other{{written} playlists written}} · {read} of yours read",
+  "@syncPlaylists": {
+    "placeholders": {
+      "written": {
+        "type": "int"
+      },
+      "read": {
+        "type": "int"
+      }
+    }
+  },
+  "syncUnknownEntries": "{count, plural, one{({count} entry unknown)} other{({count} entries unknown)}}",
+  "@syncUnknownEntries": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reviewUnknownEntries": "Review them in the web app",
+  "@reviewUnknownEntries": {
+    "description": "Opens the web app's Devices tab, where the entries of the card's own playlists that matched no track wait for review."
+  },
+  "missingUndecided": "{count, plural, one{{count} track the server expects is missing on this card. An automatic sync leaves that for you to decide.} other{{count} tracks the server expects are missing on this card. An automatic sync leaves that for you to decide.}}",
+  "@missingUndecided": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "decide": "Decide",
+  "orphansIntro": "Usually leftovers from a format change, but files you copied here yourself show up too. Tick the ones to delete; the rest stay.",
+  "orphansSelectAll": "Select all",
+  "orphansDeleteSelected": "{count, plural, one{Delete {count} file} other{Delete {count} files}}",
+  "@orphansDeleteSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "orphansAlwaysKeep": "Always keep files Trobar didn't put here, and stop asking",
+  "settingsOrphanPolicy": "When the card has files Trobar didn't put there",
+  "settingsOrphanAsk": "Ask each time",
+  "settingsOrphanKeep": "Always keep them"
 }

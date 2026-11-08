@@ -4,6 +4,7 @@
 // so it survives reopening — these cover the round-trip, the absent-file case,
 // and the "Clear error" transform.
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -11,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:trobar_desktop/card_store.dart';
 import 'package:trobar_desktop/models.dart';
+import 'package:trobar_desktop/windows_volume.dart';
 
 void main() {
   late Directory root;
@@ -36,6 +38,20 @@ void main() {
     expect(read.downloaded, 12);
     expect(read.deleted, 3);
     expect(read.error, 'disk full');
+  });
+
+  test('the playlist counts round-trip, and an older file reads them as 0',
+      () async {
+    await writeSyncOutcome(
+        root,
+        SyncOutcome(syncedAt: DateTime.now(), playlists: 4, devicePlaylists: 2, unknownEntries: 7));
+    final read = (await readSyncOutcome(root))!;
+    expect([read.playlists, read.devicePlaylists, read.unknownEntries], [4, 2, 7]);
+
+    await syncStateFileFor(root)
+        .writeAsString('{"synced_at":"2026-07-20T09:00:00Z","downloaded":1,"deleted":0}');
+    final old = (await readSyncOutcome(root))!;
+    expect([old.playlists, old.devicePlaylists, old.unknownEntries], [0, 0, 0]);
   });
 
   test('the timestamp is persisted as UTC, not local wall-clock (#39)',
@@ -124,12 +140,69 @@ void main() {
     });
   });
 
+  group('a folder that does not answer', () {
+    test('is dropped after the timeout, and the others are still found',
+        () async {
+      await writeConfig(
+          root, const DeviceConfig(serverUrl: 'https://x', token: 't'));
+      final hung = [for (var i = 0; i < 3; i++) p.join(root.path, 'share$i')];
+      final clock = Stopwatch()..start();
+      final found = await discoverLocalFolders([...hung, root.path],
+          timeout: const Duration(milliseconds: 300),
+          probe: (dir) => hung.contains(dir.path)
+              ? Completer<DeviceConfig?>().future // never answers
+              : readConfig(dir));
+      clock.stop();
+      expect(found.map((f) => f.$1.path), [root.path]);
+      // Probed together: three silent shares cost one timeout, not three.
+      expect(clock.elapsed, lessThan(const Duration(milliseconds: 800)));
+    });
+  });
+
+  group('linuxMountUser', () {
+    const passwd = 'root:x:0:0::/nonexistent:/bin/false\n'
+        'alice:x:1000:1000::/nonexistent:/bin/false\n';
+    test('is USER normally', () {
+      expect(linuxMountUser({'USER': 'alice'}), 'alice');
+    });
+    test('is the invoking user under sudo', () {
+      expect(linuxMountUser({'USER': 'root', 'SUDO_USER': 'alice'}), 'alice');
+    });
+    test('is the invoking user under pkexec, by uid', () {
+      expect(
+          linuxMountUser({'USER': 'root', 'PKEXEC_UID': '1000'},
+              passwd: passwd),
+          'alice');
+    });
+    test('falls back to USER for an unknown uid or an empty SUDO_USER', () {
+      expect(
+          linuxMountUser({'USER': 'root', 'PKEXEC_UID': '4242'},
+              passwd: passwd),
+          'root');
+      expect(linuxMountUser({'USER': 'root', 'SUDO_USER': ''}), 'root');
+    });
+  });
+
   group('isRemovable (#66)', () {
     test('an arbitrary folder outside any mount convention is not removable',
         () {
       // root is a systemTemp dir — never under /media, /run/media, /Volumes,
       // or (on Windows) equal to a bare drive-letter root.
       expect(isRemovable(root), isFalse);
+    });
+
+    test('on Windows only a removable drive root counts (desktop#45)', () {
+      // Everything on E: is on removable media, so only the root check can
+      // tell the drive from a folder on it.
+      int drive(String path) => path.startsWith('E:') ? driveRemovable : 3;
+      expect(windowsTargetIsRemovable(r'E:\', drive), isTrue);
+      // A folder on the removable drive is not the drive.
+      expect(windowsTargetIsRemovable(r'E:\Music', drive), isFalse);
+      // A fixed drive's root, and any folder on it.
+      expect(windowsTargetIsRemovable(r'C:\', drive), isFalse);
+      expect(
+          windowsTargetIsRemovable(r'C:\Users\me\AppData\Local\Temp', drive),
+          isFalse);
     });
 
     test('a path under the Linux removable-mount convention is removable',

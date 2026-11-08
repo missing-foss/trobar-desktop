@@ -2,6 +2,9 @@
 #define RUNNER_FLUTTER_WINDOW_H_
 
 #include <flutter/dart_project.h>
+#include <flutter/encodable_value.h>
+#include <flutter/event_channel.h>
+#include <flutter/event_sink.h>
 #include <flutter/flutter_view_controller.h>
 
 #include <memory>
@@ -28,6 +31,12 @@ class FlutterWindow : public Win32Window {
 
   // The Flutter instance hosted by this window.
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;
+
+  // Volume arrivals and removals, passed to Dart ("trobar/volumes") so the
+  // app looks at a drive only when Windows says a volume or its media
+  // arrived. The sink is set while Dart listens.
+  std::unique_ptr<flutter::EventChannel<flutter::EncodableValue>> volume_channel_;
+  std::unique_ptr<flutter::EventSink<flutter::EncodableValue>> volume_sink_;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

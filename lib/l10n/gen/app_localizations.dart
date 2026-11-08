@@ -125,13 +125,13 @@ abstract class AppLocalizations {
   /// No description provided for @pairInstructions.
   ///
   /// In en, this message translates to:
-  /// **'In the web app, create a device (type: SD card) and download its config file — then paste its contents here. The pairing is stored on the card itself, so any computer running Trobar can sync it.'**
+  /// **'In the web app, get a pairing code for this device (for one that already exists: Devices → Re-pair in app), then enter the server URL and the 8-character code below. The pairing is stored on the card itself, so any computer running Trobar can sync it.'**
   String get pairInstructions;
 
   /// No description provided for @pairInvalidConfig.
   ///
   /// In en, this message translates to:
-  /// **'Not a valid device config (expected server_url + token).'**
+  /// **'Not a valid device config (expected server_url with token or enroll_code).'**
   String get pairInvalidConfig;
 
   /// No description provided for @pairWriteFailed.
@@ -152,6 +152,96 @@ abstract class AppLocalizations {
   /// **'Pair'**
   String get pairButton;
 
+  /// No description provided for @pairServerUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Server URL'**
+  String get pairServerUrlLabel;
+
+  /// No description provided for @pairCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairing code'**
+  String get pairCodeLabel;
+
+  /// No description provided for @pairNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Device name'**
+  String get pairNameLabel;
+
+  /// No description provided for @pairNameHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Used for a new device. Re-pairing keeps the name the device already has.'**
+  String get pairNameHelp;
+
+  /// No description provided for @pairConfigHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Or paste a device config, or load its file'**
+  String get pairConfigHeading;
+
+  /// No description provided for @pairConfigButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair with config'**
+  String get pairConfigButton;
+
+  /// No description provided for @pairMissingServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the server URL.'**
+  String get pairMissingServer;
+
+  /// No description provided for @pairBadServerUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'The server URL must start with https:// or http://.'**
+  String get pairBadServerUrl;
+
+  /// No description provided for @pairMissingName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a device name.'**
+  String get pairMissingName;
+
+  /// No description provided for @pairInvalidCode.
+  ///
+  /// In en, this message translates to:
+  /// **'That isn\'t a pairing code: it\'s 8 letters and digits.'**
+  String get pairInvalidCode;
+
+  /// No description provided for @pairCodeRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid or expired code. Get a fresh one in the web app.'**
+  String get pairCodeRejected;
+
+  /// No description provided for @pairRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Wait a few minutes and try again.'**
+  String get pairRateLimited;
+
+  /// No description provided for @pairNetworkError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the server: {reason}'**
+  String pairNetworkError(String reason);
+
+  /// No description provided for @pairFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairing failed: {reason}'**
+  String pairFailed(String reason);
+
+  /// No description provided for @pairedAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired as {name}'**
+  String pairedAs(String name);
+
   /// No description provided for @freeOfTotal.
   ///
   /// In en, this message translates to:
@@ -161,7 +251,7 @@ abstract class AppLocalizations {
   /// No description provided for @missingTitle.
   ///
   /// In en, this message translates to:
-  /// **'{count} track(s) missing on this card'**
+  /// **'{count, plural, one{{count} track missing on this card} other{{count} tracks missing on this card}}'**
   String missingTitle(int count);
 
   /// No description provided for @missingBody.
@@ -191,32 +281,14 @@ abstract class AppLocalizations {
   /// No description provided for @orphansTitle.
   ///
   /// In en, this message translates to:
-  /// **'{count} file(s) on this card are not managed by Trobar'**
+  /// **'{count, plural, one{{count} file on this card is not managed by Trobar} other{{count} files on this card are not managed by Trobar}}'**
   String orphansTitle(int count);
-
-  /// No description provided for @orphansBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Usually leftovers from a format change — but files you copied here yourself also show up. Delete them?\n\n{preview}'**
-  String orphansBody(String preview);
-
-  /// No description provided for @orphansMore.
-  ///
-  /// In en, this message translates to:
-  /// **'… and {count} more'**
-  String orphansMore(int count);
 
   /// No description provided for @keep.
   ///
   /// In en, this message translates to:
   /// **'Keep'**
   String get keep;
-
-  /// No description provided for @deleteThem.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete them'**
-  String get deleteThem;
 
   /// No description provided for @syncNow.
   ///
@@ -278,11 +350,47 @@ abstract class AppLocalizations {
   /// **'Could not reach GitHub ({error}) — try again later.'**
   String updateCheckFailed(String error);
 
-  /// No description provided for @donate.
+  /// No description provided for @supportOnKofi.
   ///
   /// In en, this message translates to:
-  /// **'Donate'**
-  String get donate;
+  /// **'Support on Ko-fi'**
+  String get supportOnKofi;
+
+  /// No description provided for @supportNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Support pays for test devices, infrastructure and Claude. Mostly, it buys a good coffee and keeps the motivation going for the next projects.'**
+  String get supportNote;
+
+  /// No description provided for @thanksCardThank.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank'**
+  String get thanksCardThank;
+
+  /// No description provided for @thanksCardYou.
+  ///
+  /// In en, this message translates to:
+  /// **'you'**
+  String get thanksCardYou;
+
+  /// No description provided for @thanksCardSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'Trobar has synced {count} times for you.'**
+  String thanksCardSynced(int count);
+
+  /// No description provided for @thanksCardCoffee.
+  ///
+  /// In en, this message translates to:
+  /// **'If it\'s useful, a coffee helps.'**
+  String get thanksCardCoffee;
+
+  /// No description provided for @dismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get dismiss;
 
   /// No description provided for @aboutLinks.
   ///
@@ -391,6 +499,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'System'**
   String get settingsLanguageSystem;
+
+  /// No description provided for @settingsTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get settingsTheme;
+
+  /// No description provided for @brandThemeTroubadour.
+  ///
+  /// In en, this message translates to:
+  /// **'Default · cream'**
+  String get brandThemeTroubadour;
+
+  /// No description provided for @brandThemeNuech.
+  ///
+  /// In en, this message translates to:
+  /// **'Night · dark only'**
+  String get brandThemeNuech;
+
+  /// No description provided for @brandThemeGarriga.
+  ///
+  /// In en, this message translates to:
+  /// **'Sage · olive'**
+  String get brandThemeGarriga;
+
+  /// No description provided for @brandThemePeira.
+  ///
+  /// In en, this message translates to:
+  /// **'Stone · terracotta'**
+  String get brandThemePeira;
+
+  /// No description provided for @brandThemeContraste.
+  ///
+  /// In en, this message translates to:
+  /// **'High contrast · dark only'**
+  String get brandThemeContraste;
 
   /// No description provided for @settingsMissingPolicy.
   ///
@@ -518,6 +662,78 @@ abstract class AppLocalizations {
   /// **'Sync failed'**
   String get notifySyncFailed;
 
+  /// No description provided for @syncStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop sync'**
+  String get syncStop;
+
+  /// No description provided for @syncStopping.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopping…'**
+  String get syncStopping;
+
+  /// No description provided for @syncStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync stopped: {downloaded} downloaded before it stopped. The rest comes with the next sync.'**
+  String syncStopped(int downloaded);
+
+  /// No description provided for @leaveDuringSyncTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A sync is running'**
+  String get leaveDuringSyncTitle;
+
+  /// No description provided for @leaveDuringSyncBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop it and leave? What\'s already downloaded stays on the card; the rest comes with the next sync.'**
+  String get leaveDuringSyncBody;
+
+  /// No description provided for @keepSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep syncing'**
+  String get keepSyncing;
+
+  /// No description provided for @stopAndLeave.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop and leave'**
+  String get stopAndLeave;
+
+  /// No description provided for @pairingRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'The server no longer accepts this card\'s pairing: the device was removed or paired again elsewhere. Pair this card again to keep syncing it.'**
+  String get pairingRevoked;
+
+  /// No description provided for @pairAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair this card again'**
+  String get pairAgain;
+
+  /// No description provided for @recoveryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t tell the server what this card already holds; this is tried again the next time the card is opened. ({reason})'**
+  String recoveryFailed(String reason);
+
+  /// No description provided for @syncNotEnoughSpace.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough space on the card: these downloads need at least {needed} GB, and {free} GB is free. Nothing was downloaded; free some space, or lower what is selected for this device.'**
+  String syncNotEnoughSpace(String needed, String free);
+
+  /// No description provided for @syncCardFull.
+  ///
+  /// In en, this message translates to:
+  /// **'The card filled up during the sync. What fit is on it; free some space, or lower what is selected for this device, and sync again.'**
+  String get syncCardFull;
+
   /// No description provided for @duelTitle.
   ///
   /// In en, this message translates to:
@@ -565,6 +781,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Click a column or press 1–7 to drop'**
   String get duelHint;
+
+  /// No description provided for @syncPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'{written, plural, one{{written} playlist written} other{{written} playlists written}} · {read} of yours read'**
+  String syncPlaylists(int written, int read);
+
+  /// No description provided for @syncUnknownEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{({count} entry unknown)} other{({count} entries unknown)}}'**
+  String syncUnknownEntries(int count);
+
+  /// Opens the web app's Devices tab, where the entries of the card's own playlists that matched no track wait for review.
+  ///
+  /// In en, this message translates to:
+  /// **'Review them in the web app'**
+  String get reviewUnknownEntries;
+
+  /// No description provided for @missingUndecided.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} track the server expects is missing on this card. An automatic sync leaves that for you to decide.} other{{count} tracks the server expects are missing on this card. An automatic sync leaves that for you to decide.}}'**
+  String missingUndecided(int count);
+
+  /// No description provided for @decide.
+  ///
+  /// In en, this message translates to:
+  /// **'Decide'**
+  String get decide;
+
+  /// No description provided for @orphansIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Usually leftovers from a format change, but files you copied here yourself show up too. Tick the ones to delete; the rest stay.'**
+  String get orphansIntro;
+
+  /// No description provided for @orphansSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get orphansSelectAll;
+
+  /// No description provided for @orphansDeleteSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{Delete {count} file} other{Delete {count} files}}'**
+  String orphansDeleteSelected(int count);
+
+  /// No description provided for @orphansAlwaysKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Always keep files Trobar didn\'t put here, and stop asking'**
+  String get orphansAlwaysKeep;
+
+  /// No description provided for @settingsOrphanPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'When the card has files Trobar didn\'t put there'**
+  String get settingsOrphanPolicy;
+
+  /// No description provided for @settingsOrphanAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask each time'**
+  String get settingsOrphanAsk;
+
+  /// No description provided for @settingsOrphanKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Always keep them'**
+  String get settingsOrphanKeep;
 }
 
 class _AppLocalizationsDelegate

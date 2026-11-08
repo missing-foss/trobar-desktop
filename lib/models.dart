@@ -26,6 +26,13 @@ class SyncOutcome {
   final int downloaded;
   final int deleted;
 
+  /// Playlists the sync wrote from the server, playlists made on the card
+  /// that the server read, and those playlists' entries it matched to no
+  /// track. 0 in an outcome written before these were kept.
+  final int playlists;
+  final int devicePlaylists;
+  final int unknownEntries;
+
   /// The first error of the last sync, kept so it's copyable for a bug report
   /// and survives a reopen; null once cleared or on a clean sync.
   final String? error;
@@ -34,6 +41,9 @@ class SyncOutcome {
     required this.syncedAt,
     this.downloaded = 0,
     this.deleted = 0,
+    this.playlists = 0,
+    this.devicePlaylists = 0,
+    this.unknownEntries = 0,
     this.error,
   });
 
@@ -43,12 +53,18 @@ class SyncOutcome {
         syncedAt: syncedAt,
         downloaded: downloaded,
         deleted: deleted,
+        playlists: playlists,
+        devicePlaylists: devicePlaylists,
+        unknownEntries: unknownEntries,
       );
 
   factory SyncOutcome.fromJson(Map<String, dynamic> json) => SyncOutcome(
         syncedAt: DateTime.parse(json['synced_at'] as String),
         downloaded: json['downloaded'] as int? ?? 0,
         deleted: json['deleted'] as int? ?? 0,
+        playlists: json['playlists'] as int? ?? 0,
+        devicePlaylists: json['device_playlists'] as int? ?? 0,
+        unknownEntries: json['unknown_entries'] as int? ?? 0,
         error: json['error'] as String?,
       );
 
@@ -59,6 +75,9 @@ class SyncOutcome {
         'synced_at': syncedAt.toUtc().toIso8601String(),
         'downloaded': downloaded,
         'deleted': deleted,
+        'playlists': playlists,
+        'device_playlists': devicePlaylists,
+        'unknown_entries': unknownEntries,
         if (error != null) 'error': error,
       };
 }
@@ -95,18 +114,25 @@ class TrackChange {
   /// locally. The server serves the already-converted bytes, so the client
   /// just downloads whatever it's given — there is no client-side transcode.
   final String relativePath;
+
+  /// The source file's size. For a track the server transcodes for this
+  /// device ([transcode]) the file that lands is smaller, by an amount
+  /// nobody knows before it's made.
   final int? size;
+  final bool transcode;
 
   const TrackChange({
     required this.trackId,
     required this.relativePath,
     this.size,
+    this.transcode = false,
   });
 
   factory TrackChange.fromJson(Map<String, dynamic> json) => TrackChange(
         trackId: json['track_id'] as int,
         relativePath: json['relative_path'] as String,
         size: json['size'] as int?,
+        transcode: json['transcode'] == true,
       );
 }
 
@@ -241,6 +267,33 @@ class ProvenancePushResult {
 /// card already held were recognised against the library (`matched`, now
 /// marked 'downloaded' server-side) versus not (`unmatched`, content the
 /// server doesn't know about).
+/// A playlist a person made on the device, as read off the card: its path
+/// from the card root and its entries (the non-comment lines), in order.
+class DevicePlaylist {
+  final String path;
+  final List<String> entries;
+
+  const DevicePlaylist({required this.path, required this.entries});
+
+  Map<String, dynamic> toJson() => {'path': path, 'entries': entries};
+}
+
+class DevicePlaylistsResult {
+  final int playlists;
+  final int matched;
+  final int unknown;
+
+  const DevicePlaylistsResult(
+      {required this.playlists, required this.matched, required this.unknown});
+
+  factory DevicePlaylistsResult.fromJson(Map<String, dynamic> json) =>
+      DevicePlaylistsResult(
+        playlists: json['playlists'] as int? ?? 0,
+        matched: json['matched'] as int? ?? 0,
+        unknown: json['unknown'] as int? ?? 0,
+      );
+}
+
 class ManifestResult {
   final int matched;
   final int unmatched;

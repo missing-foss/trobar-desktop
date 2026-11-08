@@ -25,6 +25,7 @@ void main() {
     final prefs = await AppPrefs.load(file: prefsFile());
     expect(prefs.language, 'system');
     expect(prefs.missingPolicy, 'ask');
+    expect(prefs.orphanPolicy, 'ask');
     // #23: auto-sync is opt-in / off by default.
     expect(prefs.autoSyncOnDetect, isFalse);
     expect(prefs.autoSyncIntervalMinutes, 0);
@@ -37,17 +38,19 @@ void main() {
     prefs
       ..language = 'fr'
       ..missingPolicy = 'redownload'
+      ..orphanPolicy = 'keep'
       ..autoSyncOnDetect = true
       ..autoSyncIntervalMinutes = 60
-      ..localFolders = ['/home/alice/Music/player'];
+      ..localFolders = ['/srv/music/player'];
     await prefs.save();
 
     final reloaded = await AppPrefs.load(file: prefsFile());
     expect(reloaded.language, 'fr');
     expect(reloaded.missingPolicy, 'redownload');
+    expect(reloaded.orphanPolicy, 'keep');
     expect(reloaded.autoSyncOnDetect, isTrue);
     expect(reloaded.autoSyncIntervalMinutes, 60);
-    expect(reloaded.localFolders, ['/home/alice/Music/player']);
+    expect(reloaded.localFolders, ['/srv/music/player']);
   });
 
   group('localFolders (#66)', () {
@@ -109,10 +112,11 @@ void main() {
 
   test('out-of-range values fall back to defaults', () async {
     await prefsFile()
-        .writeAsString('{"language":"de","missing_policy":"nuke"}');
+        .writeAsString('{"language":"de","missing_policy":"nuke","orphan_policy":"burn"}');
     final prefs = await AppPrefs.load(file: prefsFile());
     expect(prefs.language, 'system');
     expect(prefs.missingPolicy, 'ask');
+    expect(prefs.orphanPolicy, 'ask');
   });
 
   test('load sets the process-wide singleton', () async {
@@ -121,5 +125,15 @@ void main() {
     await AppPrefs.load(file: prefsFile());
     expect(AppPrefs.instance.language, 'en');
     expect(AppPrefs.instance.missingPolicy, 'exclude');
+  });
+
+  test('the brand theme defaults to troubadour, round-trips, and an unknown one falls back', () async {
+    final prefs = await AppPrefs.load(file: prefsFile());
+    expect(prefs.brandTheme, 'troubadour');
+    prefs.brandTheme = 'garriga';
+    await prefs.save();
+    expect((await AppPrefs.load(file: prefsFile())).brandTheme, 'garriga');
+    await prefsFile().writeAsString('{"brand_theme": "bard"}');
+    expect((await AppPrefs.load(file: prefsFile())).brandTheme, 'troubadour');
   });
 }

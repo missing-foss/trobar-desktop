@@ -6,7 +6,7 @@ name: trobar_desktop
 description: "Trobar desktop sync client — syncs library selections onto SD cards and local folders for network-less DAPs."
 publish_to: 'none'
 
-version: 0.11.0+12
+version: 0.12.0+13
 
 environment:
   sdk: ^3.9.2
@@ -26,6 +26,7 @@ dependencies:
   # only — nothing phoned home (the app's no-telemetry stance).
   local_notifier: ^0.1.6
   window_manager: ^0.5.2
+  flutter_svg: ^2.3.0
 
 dev_dependencies:
   flutter_test:
@@ -36,7 +37,9 @@ flutter:
   generate: true
   uses-material-design: true
   assets:
-    - assets/logo_bard.png
+    # The rosette (brand/README.md in trobar-server): the themable mark, and
+    # each theme's lockup for the Settings previews.
+    - assets/brand/
     # About screen: the app's own license, shown offline in-app.
     - LICENSE
   # Brand fonts (#22), bundled OFL .ttf to match Android/web — Space Grotesk is

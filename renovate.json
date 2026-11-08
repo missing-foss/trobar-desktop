@@ -1,0 +1,101 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Version bumps for the pins nobody would otherwise refresh: the Dart packages and their lockfile, the Flutter toolchain in .tool-versions, and the workflow actions.",
+    "Renovate opens one pull request per group, weekly, and stops; review, CI and the merge desk take it from there like any other.",
+    "minimumReleaseAge is the cool-down: nothing younger than three days is proposed.",
+    "constraints.flutter is the Flutter Renovate regenerates pubspec.lock with. Renovate does not read .tool-versions, and left alone it would use the newest Flutter, which can resolve a lock the pinned one cannot. The Flutter toolchain pull request moves it together with .tool-versions and the manifest's surface line (the regex managers below), and dev/verify.sh checks it equals .tool-versions."
+  ],
+  "extends": [
+    "config:recommended"
+  ],
+  "timezone": "Europe/Zurich",
+  "schedule": [
+    "* 0-5 * * 3"
+  ],
+  "minimumReleaseAge": "3 days",
+  "minimumReleaseAgeBehaviour": "timestamp-optional",
+  "enabledManagers": [
+    "pub",
+    "asdf",
+    "github-actions",
+    "custom.regex"
+  ],
+  "pinDigests": true,
+  "automerge": false,
+  "rebaseWhen": "behind-base-branch",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "description": "Every pubspec.yaml constraint is a caret range the newest release already satisfies, so without this the versions pinned in pubspec.lock would never move. One weekly pull request regenerates the lock within those ranges.",
+    "schedule": [
+      "* 0-5 * * 3"
+    ]
+  },
+  "constraints": {
+    "flutter": "3.47.9"
+  },
+  "packageRules": [
+    {
+      "matchManagers": [
+        "pub"
+      ],
+      "groupName": "Dart packages"
+    },
+    {
+      "description": "The Flutter SDK in .tool-versions is what CI and a local mise install both build with, releases included: its own pull request, never part of a package group.",
+      "groupName": "Flutter toolchain",
+      "matchManagers": [
+        "asdf",
+        "custom.regex"
+      ],
+      "matchDepNames": [
+        "flutter"
+      ]
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "workflow actions"
+    },
+    {
+      "description": "Workflows outside .github run on the forge's runner, which is not GitHub: a newer action major can need a newer node than it has. Digest refreshes only there.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchFileNames": [
+        "!.github/workflows/**"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "The dependency desk's manifest (upstreams.yml) names the Flutter version in its surface line, and a bump must update it in the same pull request. This reads that version, so the Flutter toolchain pull request moves it with .tool-versions.",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)upstreams\\.yml$/"
+      ],
+      "matchStrings": [
+        "Flutter (?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "flutter",
+      "datasourceTemplate": "flutter-version"
+    },
+    {
+      "description": "constraints.flutter above, so the Flutter toolchain pull request moves it with .tool-versions too.",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)renovate\\.json$/"
+      ],
+      "matchStrings": [
+        "\"flutter\": \"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
+      ],
+      "depNameTemplate": "flutter",
+      "datasourceTemplate": "flutter-version"
+    }
+  ]
+}

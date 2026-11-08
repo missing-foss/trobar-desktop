@@ -8,4 +8,4 @@
 # Pinned rather than tracking a channel: two builds a month apart otherwise use
 # different toolchains and nothing reports it, which matters most for a release
 # that has to be reproducible after the fact.
-flutter 3.44.9
+flutter 3.47.9

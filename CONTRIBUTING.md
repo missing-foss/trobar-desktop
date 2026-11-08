@@ -9,8 +9,15 @@ SPDX-License-Identifier: GPL-3.0-or-later
 This is the desktop client of Trobar — the contribution guidelines,
 issue tracker conventions, and dev-environment notes live in the main
 server repository's `CONTRIBUTING.md` and `docs/`. Short version: open an
-issue before large PRs, `flutter analyze && flutter test` must pass,
-contributions are `GPL-3.0-or-later` like the client itself.
+issue before large PRs, AI-assisted patches are fine if you say so in the PR,
+`dev/verify.sh` must pass, contributions are `GPL-3.0-or-later` like the
+client itself.
+
+`dev/verify.sh` runs `flutter analyze`, `flutter test` and the repository's
+other checks (translations, brand colours, licensing headers, secrets). CI runs
+them too, so running it before you push saves a round trip. It needs `flutter`,
+`python3` and `reuse` (`pipx install reuse`) and fails without them. Without
+`gitleaks` it reports SKIP for the secret scan, which CI still runs.
 
 Public issues and PRs live here on GitHub.
 

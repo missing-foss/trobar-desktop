@@ -8,9 +8,13 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'l10n/gen/app_localizations.dart';
 
+import 'formats.dart';
+import 'brand_notifier.dart';
+import 'brand_tokens.dart';
 import 'api_client.dart';
 import 'app_prefs.dart';
 import 'card_store.dart';
@@ -42,7 +46,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _limit =
       TextEditingController(text: _bytesToGbField(widget.info?.maxSizeBytes));
   late String _language = AppPrefs.instance.language;
+  late BrandTheme _brand = BrandTheme.of(AppPrefs.instance.brandTheme);
   late String _missing = AppPrefs.instance.missingPolicy;
+  late String _orphans = AppPrefs.instance.orphanPolicy;
   late bool _autoSyncOnDetect = AppPrefs.instance.autoSyncOnDetect;
   late int _autoSyncInterval = AppPrefs.instance.autoSyncIntervalMinutes;
   bool _saving = false;
@@ -71,7 +77,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int? _limitBytes() {
     final t = _limit.text.trim();
     if (t.isEmpty) return null;
-    return (double.parse(t) * 1e9).round();
+    return (parseGigabytes(t)! * 1e9).round();
   }
 
   Future<void> _save() async {
@@ -103,11 +109,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // 3. App-wide prefs — language + missing-file policy.
       AppPrefs.instance
         ..language = _language
+        ..brandTheme = _brand.key
         ..missingPolicy = _missing
+        ..orphanPolicy = _orphans
         ..autoSyncOnDetect = _autoSyncOnDetect
         ..autoSyncIntervalMinutes = _autoSyncInterval;
       await AppPrefs.instance.save();
       localeNotifier.value = _language == 'system' ? null : Locale(_language);
+      brandNotifier.value = _brand;
 
       if (mounted) Navigator.pop(context, config);
     } catch (e) {
@@ -174,6 +183,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         setState(() => _language = v ?? 'system'),
                   ),
                   const SizedBox(height: 20),
+                  // Brand theme: each previewed as its own lockup on its own
+                  // ground, so the choice shows the theme, not the current one.
+                  Text(l.settingsTheme,
+                      style: Theme.of(context).textTheme.bodySmall),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final t in BrandTheme.values)
+                        _BrandOption(
+                          key: Key('brandTheme-${t.key}'),
+                          theme: t,
+                          description: _brandDescription(l, t),
+                          selected: t == _brand,
+                          onTap: () => setState(() => _brand = t),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
                   // Missing-file policy
                   DropdownButtonFormField<String>(
                     initialValue: _missing,
@@ -190,6 +219,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: Text(l.settingsMissingExclude)),
                     ],
                     onChanged: (v) => setState(() => _missing = v ?? 'ask'),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: _orphans,
+                    decoration:
+                        InputDecoration(labelText: l.settingsOrphanPolicy),
+                    items: [
+                      DropdownMenuItem(
+                          value: 'ask', child: Text(l.settingsOrphanAsk)),
+                      DropdownMenuItem(
+                          value: 'keep', child: Text(l.settingsOrphanKeep)),
+                    ],
+                    onChanged: (v) => setState(() => _orphans = v ?? 'ask'),
                   ),
                   const SizedBox(height: 8),
                   // Auto-sync (#23): opt-in, off by default. Desktop has no
@@ -228,7 +270,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     validator: (v) {
                       final s = (v ?? '').trim();
                       if (s.isEmpty) return null;
-                      final gb = double.tryParse(s);
+                      final gb = parseGigabytes(s);
                       return (gb != null && gb >= 0)
                           ? null
                           : l.settingsInvalidLimit;
@@ -272,3 +314,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
+
+String _brandDescription(AppLocalizations l, BrandTheme t) => switch (t) {
+      BrandTheme.troubadour => l.brandThemeTroubadour,
+      BrandTheme.nuech => l.brandThemeNuech,
+      BrandTheme.garriga => l.brandThemeGarriga,
+      BrandTheme.peira => l.brandThemePeira,
+      BrandTheme.contraste => l.brandThemeContraste,
+    };
+
+class _BrandOption extends StatelessWidget {
+  final BrandTheme theme;
+  final String description;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _BrandOption({
+    super.key,
+    required this.theme,
+    required this.description,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 150,
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: selected ? scheme.primary : scheme.outlineVariant,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: SvgPicture.asset('assets/brand/lockup-${theme.key}.svg',
+                    height: 34, excludeFromSemantics: true),
+              ),
+              const SizedBox(height: 4),
+              Text(theme.displayName,
+                  style: Theme.of(context).textTheme.labelLarge),
+              Text(description, style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

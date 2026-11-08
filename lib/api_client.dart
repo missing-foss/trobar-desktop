@@ -17,17 +17,50 @@ const provenancePushMax = 500;
 
 class ApiException implements Exception {
   final String message;
-  ApiException(this.message);
+
+  /// The HTTP status the server answered with, when it answered at all.
+  final int? statusCode;
+
+  /// How long the server asked to be left alone (`Retry-After` in seconds,
+  /// as on its "busy transcoding" 503), when it said.
+  final Duration? retryAfter;
+  ApiException(this.message, {this.statusCode, this.retryAfter});
+
+  /// The server no longer accepts this card's token: the device was removed
+  /// or re-paired elsewhere. Only pairing again fixes it.
+  bool get isRevoked => statusCode == 401 || statusCode == 403;
+
   @override
   String toString() => message;
+}
+
+/// Thrown inside a download when its caller asked to stop.
+class SyncCancelled implements Exception {
+  @override
+  String toString() => 'sync cancelled';
 }
 
 class ApiClient {
   final DeviceConfig config;
   final http.Client _http;
 
-  ApiClient(this.config, {http.Client? httpClient})
+  /// How long any request waits for the server's answer (its status line
+  /// and headers, or the whole body for a JSON call), and how long a
+  /// download may go without a single byte arriving. Without them a
+  /// stalled connection kept the Sync button disabled and its spinner
+  /// running forever; with them it fails like any other request.
+  final Duration requestTimeout;
+  final Duration idleTimeout;
+
+  ApiClient(this.config,
+      {http.Client? httpClient,
+      this.requestTimeout = const Duration(seconds: 30),
+      this.idleTimeout = const Duration(seconds: 60)})
       : _http = httpClient ?? http.Client();
+
+  Future<T> _timed<T>(Future<T> request) => request.timeout(requestTimeout,
+      onTimeout: () => throw ApiException(
+          'No answer from the server in ${requestTimeout.inSeconds} s'));
 
   Uri _uri(String path) {
     final base = config.serverUrl.endsWith('/')
@@ -42,26 +75,29 @@ class ApiClient {
       };
 
   Future<Map<String, dynamic>> _getJson(String path) async {
-    final resp = await _http.get(_uri(path), headers: _headers);
+    final resp = await _timed(_http.get(_uri(path), headers: _headers));
     if (resp.statusCode != 200) {
-      throw ApiException('GET $path — HTTP ${resp.statusCode}');
+      throw ApiException('GET $path — HTTP ${resp.statusCode}',
+          statusCode: resp.statusCode);
     }
     return jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
   }
 
   Future<void> _postJson(String path, Map<String, dynamic> body) async {
     final resp =
-        await _http.post(_uri(path), headers: _headers, body: jsonEncode(body));
+        await _timed(_http.post(_uri(path), headers: _headers, body: jsonEncode(body)));
     if (resp.statusCode != 200) {
-      throw ApiException('POST $path — HTTP ${resp.statusCode}');
+      throw ApiException('POST $path — HTTP ${resp.statusCode}',
+          statusCode: resp.statusCode);
     }
   }
 
   Future<void> _patchJson(String path, Map<String, dynamic> body) async {
-    final resp = await _http.patch(_uri(path),
-        headers: _headers, body: jsonEncode(body));
+    final resp = await _timed(_http.patch(_uri(path),
+        headers: _headers, body: jsonEncode(body)));
     if (resp.statusCode != 200) {
-      throw ApiException('PATCH $path — HTTP ${resp.statusCode}');
+      throw ApiException('PATCH $path — HTTP ${resp.statusCode}',
+          statusCode: resp.statusCode);
     }
   }
 
@@ -81,9 +117,10 @@ class ApiClient {
       'after': '$after',
       'limit': '$limit',
     });
-    final resp = await _http.get(uri, headers: _headers);
+    final resp = await _timed(_http.get(uri, headers: _headers));
     if (resp.statusCode != 200) {
-      throw ApiException('fingerprints — HTTP ${resp.statusCode}');
+      throw ApiException('fingerprints — HTTP ${resp.statusCode}',
+          statusCode: resp.statusCode);
     }
     return FingerprintPage.fromJson(
         jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>);
@@ -96,12 +133,13 @@ class ApiClient {
   /// provenance.dart), this just sends what it's given.
   Future<ProvenancePushResult> pushProvenance(
       List<ProvenanceRecord> entries) async {
-    final resp = await _http.post(_uri('/api/device/provenance'),
+    final resp = await _timed(_http.post(_uri('/api/device/provenance'),
         headers: _headers,
         body: jsonEncode(
-            {'entries': [for (final e in entries) e.toPushJson()]}));
+            {'entries': [for (final e in entries) e.toPushJson()]})));
     if (resp.statusCode != 200) {
-      throw ApiException('provenance — HTTP ${resp.statusCode}');
+      throw ApiException('provenance — HTTP ${resp.statusCode}',
+          statusCode: resp.statusCode);
     }
     return ProvenancePushResult.fromJson(
         jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>);
@@ -122,27 +160,71 @@ class ApiClient {
   /// so they aren't re-fetched. See [setSourceOfTruth] for the ordering
   /// this depends on.
   Future<ManifestResult> postManifest(List<String> paths) async {
-    final resp = await _http.post(_uri('/api/device/manifest'),
-        headers: _headers, body: jsonEncode({'paths': paths}));
+    final resp = await _timed(_http.post(_uri('/api/device/manifest'),
+        headers: _headers, body: jsonEncode({'paths': paths})));
     if (resp.statusCode != 200) {
-      throw ApiException('manifest — HTTP ${resp.statusCode}');
+      throw ApiException('manifest — HTTP ${resp.statusCode}',
+          statusCode: resp.statusCode);
     }
     return ManifestResult.fromJson(
         jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>);
   }
 
+  /// The playlists a person made on this device (see
+  /// [SyncEngine.collectUserPlaylists]), the whole set found this sync; the
+  /// server makes each one a playlist of the device's owner and removes one
+  /// missing from a later upload. Null when the server predates this (404),
+  /// so a newer app on an older server just carries on.
+  Future<DevicePlaylistsResult?> postDevicePlaylists(
+      List<DevicePlaylist> playlists) async {
+    final resp = await _timed(_http.post(_uri('/api/device/playlists'),
+        headers: _headers,
+        body: jsonEncode({'playlists': [for (final pl in playlists) pl.toJson()]})));
+    if (resp.statusCode == 404) return null;
+    if (resp.statusCode != 200) {
+      throw ApiException('device playlists — HTTP ${resp.statusCode}',
+          statusCode: resp.statusCode);
+    }
+    return DevicePlaylistsResult.fromJson(
+        jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>);
+  }
+
   /// Streams the original file straight to [dest] (no buffering in memory —
   /// FLAC originals are large). Returns the byte count written.
-  Future<int> downloadTrack(int trackId, File dest) async {
+  ///
+  /// [resumeFrom] is how many bytes of the file [dest] already holds (an
+  /// interrupted original): the rest is asked for with `Range`, and a 206
+  /// appends it. A 200 means the server sent the whole file instead, which
+  /// rewrites [dest] from the start.
+  ///
+  /// [cancelled] is asked between chunks: true stops the download with
+  /// [SyncCancelled], so a stop doesn't wait for the end of a large file.
+  Future<int> downloadTrack(int trackId, File dest,
+      {int resumeFrom = 0, bool Function()? cancelled}) async {
     final req = http.Request('GET', _uri('/api/device/file/$trackId'));
     req.headers['Authorization'] = 'Bearer ${config.token}';
-    final resp = await _http.send(req);
-    if (resp.statusCode != 200) {
-      throw ApiException('file/$trackId — HTTP ${resp.statusCode}');
+    if (resumeFrom > 0) req.headers['Range'] = 'bytes=$resumeFrom-';
+    final resp = await _timed(_http.send(req));
+    final resumed = resumeFrom > 0 && resp.statusCode == 206;
+    if (resp.statusCode != 200 && !resumed) {
+      final seconds = int.tryParse(resp.headers['retry-after'] ?? '');
+      throw ApiException('file/$trackId — HTTP ${resp.statusCode}',
+          statusCode: resp.statusCode,
+          retryAfter: seconds == null ? null : Duration(seconds: seconds));
     }
-    final sink = dest.openWrite();
+    final sink =
+        dest.openWrite(mode: resumed ? FileMode.append : FileMode.write);
     try {
-      await resp.stream.pipe(sink);
+      // A loop rather than pipe(): an error through pipe() closes the sink
+      // itself, and the close() below then reports "File closed" instead of
+      // what went wrong.
+      await for (final chunk in resp.stream.timeout(idleTimeout,
+          onTimeout: (events) => events.addError(ApiException(
+              'file/$trackId — no data from the server in '
+              '${idleTimeout.inSeconds} s')))) {
+        if (cancelled?.call() ?? false) throw SyncCancelled();
+        sink.add(chunk);
+      }
     } finally {
       await sink.close();
     }
@@ -164,6 +246,11 @@ class ApiClient {
   Future<void> updateLimit(int? maxSizeBytes) =>
       _patchJson('/api/device/limit', {'max_size_bytes': maxSizeBytes});
 
+  /// One sync finished with no error: the server only counts it. A server
+  /// older than this call answers 404, which the caller ignores.
+  Future<void> reportSyncCompleted() =>
+      _postJson('/api/device/sync-completed', {});
+
   Future<void> reportStorage({int? freeBytes, int? totalBytes}) =>
       _postJson('/api/device/storage',
           {'free_bytes': freeBytes, 'total_bytes': totalBytes});
@@ -176,11 +263,12 @@ class ApiClient {
       'artist': artist,
       if (small) 'size': 'small',
     });
-    final resp = await _http.get(uri,
-        headers: {'Authorization': 'Bearer ${config.token}'});
+    final resp = await _timed(_http.get(uri,
+        headers: {'Authorization': 'Bearer ${config.token}'}));
     if (resp.statusCode == 404) return null;
     if (resp.statusCode != 200) {
-      throw ApiException('artist-image — HTTP ${resp.statusCode}');
+      throw ApiException('artist-image — HTTP ${resp.statusCode}',
+          statusCode: resp.statusCode);
     }
     return resp.bodyBytes;
   }

@@ -10,6 +10,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # release.yml runs this whole gate before it builds the release bundles.
+  workflow_call:
 
 permissions:
   contents: read
@@ -27,7 +29,8 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: ${{ steps.tools.outputs.flutter }}
-      - run: flutter pub get
+      # Fails on a lockfile the pinned SDK would re-resolve, as on the forge.
+      - run: flutter pub get --enforce-lockfile
       - run: flutter analyze
       - run: flutter test
       - name: Translations (FR ARB complete, #32)
@@ -43,12 +46,55 @@ jobs:
       - name: Secret scan
         # Binary download rather than gitleaks-action: the org Actions policy
         # only allows GitHub-owned + verified-creator actions.
+        #
+        # Downloaded to a file and sha256-verified BEFORE extraction, not piped
+        # into tar. An unverified archive feeding an extractor, whose extracted
+        # binary is then run over the whole repository, is a supply-chain step
+        # with no check on it. The pin is the digest of the real upstream
+        # artifact, computed from it rather than copied between workflows.
         run: |
+          set -euo pipefail
           v=8.24.3
-          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${v}/gitleaks_${v}_linux_x64.tar.gz" | tar -xz gitleaks
+          sha=9991e0b2903da4c8f6122b5c3186448b927a5da4deef1fe45271c3793f4ee29c
+          curl -sSL -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${v}/gitleaks_${v}_linux_x64.tar.gz"
+          echo "${sha}  gitleaks.tar.gz" | sha256sum -c -
+          echo "GUARD gitleaks: archive sha256 verified against the pin"
+          tar -xzf gitleaks.tar.gz gitleaks
+          rm gitleaks.tar.gz
           ./gitleaks git --no-banner .
       - name: REUSE lint (per-file SPDX licensing, #30)
         # Python tool; the org Actions policy blocks fsfe/reuse-action, so run it
         # via pipx (preinstalled on the runner). The charset-normalizer extra
         # supplies reuse's encoding detection without needing libmagic.
         run: pipx run --spec 'reuse[charset-normalizer]' reuse lint
+
+  guards:
+    # The same guards as the forge's guards job, with the same commands, so
+    # the two copies agree on what a green tick means. None needs Flutter.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: No hardcoded UI strings
+        # A Text() built from a string literal bypasses l10n and renders English
+        # whatever the locale. Native language names in the language picker are
+        # the one legitimate exception.
+        run: |
+          if grep -rnE "Text\(\s*(const\s+)?['\"]" lib/ --include='*.dart' \
+               | grep -v 'l10n/gen' \
+               | grep -vE "Text\((const )?'(English|Français)'\)"; then
+            echo "::error::localize the Text() string(s) above via AppLocalizations"
+            exit 1
+          fi
+          echo "GUARD hardcoded-strings: none outside the permitted exceptions"
+      - name: Vendored guards match their declared versions
+        # Before the guard below: it runs the vendored guard, so whether that
+        # guard is the canonical one has to be settled first.
+        run: dev/guards/verify-vendored.sh
+      - name: Tracker references in published prose
+        run: python3 dev/guards/check-tracker-refs.py
+      - name: Brand colours (generated, WCAG AA)
+        # lib/brand_tokens.dart is generated from brand/trobar-themes.json by
+        # tool/gen_brand_tokens.py. Fails when it is stale, or when any theme's
+        # derived scheme puts a text/background pair under WCAG AA.
+        run: python3 tool/gen_brand_tokens.py --check
